@@ -2,7 +2,7 @@
 
 ##### Workers部署：
 
-将`_worker.js`或`src/worker.js`的代码复制到worker中（在线编辑代码，覆盖worker.js文件的内容）；
+将`_worker.js`或`src/worker.js`的代码复制到worker中（在线编辑代码，覆盖worker.js文件的内容）。
 
 ##### Pages部署：
 

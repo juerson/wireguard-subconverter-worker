@@ -1,0 +1,4 @@
+name = "wireguard-subconverter-worker"
+main = "src/worker.js"
+compatibility_date = "2024-04-09"
+workers_dev = true

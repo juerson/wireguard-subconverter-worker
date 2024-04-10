@@ -6,7 +6,7 @@
 
 ##### Pages部署：
 
-将`_worker.js`文件(不能修改成其它文件名，使用src/worker.js的代码，文件名就改为`_worker.js`)下载到本地电脑，单独放到一个文件夹中，然后在文件夹目录中，执行`git init`命令自动生成隐藏`.git`文件夹(不能手动创建)，最后将整个文件夹上传到cloudflare中，就能部署成功。
+将`_worker.js`文件(不能修改成其它文件名，使用src/worker.js的代码，文件名就改为`_worker.js`)下载到本地电脑，单独放到一个文件夹中，然后在该文件夹路径下，执行`git init`命令自动生成隐藏`.git`文件夹(不能手动创建)，最后将整个文件夹上传到cloudflare中，就能部署成功。
 
 将`_worker.js`或`src/worker.js`的代码部署到Cloudflare Workers或Pages后，可以实现如下的功能：
 

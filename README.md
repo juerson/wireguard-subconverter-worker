@@ -2,7 +2,7 @@
 
 ##### Workers部署：
 
-将`_worker.js`或`src/worker.js`的代码复制到worker中（在线编辑代码，覆盖worker.js文件的内容）。
+将`_worker.js`或`src/worker.js`的代码复制到worker中（在线编辑代码，覆盖`worker.js`文件的内容）。
 
 ##### Pages部署：
 
@@ -19,9 +19,9 @@
 
 2、由于随机生成IP和随机获取PORT，每次网络请求，获取到内容都在变，导致节点链接也在变。
 
-3、代码中wireguardParameters中的参数是warp普通账号的参数，建议更换成自己的参数（Plus账号、Zero Trust团队账号的参数）。
+3、代码中`wireguardParameters`中的参数是warp普通账号的参数，建议更换成自己的参数（Plus账号、Zero Trust团队账号的参数）。
 
-4、不支持Android端的NekoBox。
+**4、不支持Android版本的NekoBox。**
 
 ### 二、URL参数说明
 

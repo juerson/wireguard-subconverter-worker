@@ -33,7 +33,7 @@
 #### 2、cidrs参数(可选)：限制所有的IP来源哪个/哪些IPv4 CIDR中?
 <img src="images\cidrs参数.png" />
 
-#### 3、nodeSize参数(可选)：您想要多少条wiregaurd/nekoray链接？
+#### 3、nodeSize参数(可选)：您想要多少条wiregaurd/nekoray链接？默认300条。
 
 <img src="images\nodeSize参数.png" />
 

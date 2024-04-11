@@ -6,27 +6,29 @@
 
 ##### Pages部署：
 
-将`_worker.js`文件(不能修改成其它文件名，使用`src/worker.js`的代码，文件名要改为`_worker.js`)下载到本地电脑，单独放到一个文件夹中(自己手动创建一个，名称最好是字母、数字的)，然后在该文件夹路径下，执行`git init`命令(需要安装git工具)自动生成隐藏`.git`文件夹(不能手动创建)，最后将整个文件夹上传到cloudflare中，部署成功。
+将`_worker.js`文件(不能修改成其它文件名，使用`src/worker.js`的代码，文件名要改为`_worker.js`)下载到本地电脑，单独放到一个文件夹中(自己手动创建一个，名称最好是字母、数字的)，然后在该文件夹路径下，执行`git init`命令(需要安装git工具)自动生成隐藏`.git`文件夹(不能手动创建)，最后将整个文件夹上传到cloudflare pages中，部署成功。
+
+##### 代码的作用/功能：
 
 将`_worker.js`或`src/worker.js`的代码部署到Cloudflare Workers或Pages后，可以实现如下的功能：
 
-- Cloudflare WARP（WireGuard）转换为 v2rayN 客户端的 wireguard 链接；
-- Cloudflare WARP（WireGuard）转换为 NekoBox 客户端的 nekoray 链接。
-- Cloudflare WARP（WireGuard）转换为适配 clash.meta/mihomo/Clash Rev 内核的Clash配置文件订阅，经过测试支持[hiddify-next](https://github.com/hiddify/hiddify-next)、[clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev)、[clash-nyanpasu](https://github.com/LibNyanpasu/clash-nyanpasu)、[ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)客户端，如果发现无法联网，可以尝试修改Clash配置文件中的dns字段。
+- Cloudflare WARP（WireGuard）转换为 v2rayN、v2rayNG客户端使用的 wireguard 链接；
+- Cloudflare WARP（WireGuard）转换为 NekoBox 客户端使用的 nekoray 链接，安卓版的NekoBox不支持使用。
+- Cloudflare WARP（WireGuard）转换为适配 clash.meta/mihomo/Clash Rev 内核的Clash配置文件订阅，经过测试支持[hiddify-next](https://github.com/hiddify/hiddify-next)、[clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev)、[clash-nyanpasu](https://github.com/LibNyanpasu/clash-nyanpasu)、[ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)客户端使用，如果发现无法联网使用，可以尝试修改Clash配置文件中的dns字段。
 
-使用注意：
+### 二、使用注意
 
-1、不支持IPv6 CIDR的参数值传入（不支持生成IPv6地址），也不支持优选IP。
+- 1、不支持IPv6 CIDR的参数值传入（不支持生成IPv6地址），也不支持优选IP。
 
-2、由于随机生成IP和随机获取PORT，每次网络请求，获取到内容都在变，导致节点链接也在变。
+- 2、由于随机生成IP和随机获取PORT，每次网络请求，获取到内容都在变，导致节点链接也在变。
 
-3、代码中`wireguardParameters`中的参数是warp普通账号的参数，建议更换成自己的参数（Plus账号、Zero Trust团队账号的参数）。
+- 3、代码中`wireguardParameters`中的参数是warp普通账号的参数，建议更换成自己的参数（Plus账号、Zero Trust团队账号的参数）。
 
-4、根据个人使用情况，酌情修改`CLASH_TEMPLATE_URL`的clash配置模板。
+- 4、根据个人使用情况，酌情修改`CLASH_TEMPLATE_URL`的clash配置模板。
 
-**5、不支持Android版本的NekoBox。**
+- 5、不支持Android版的NekoBox。
 
-### 二、URL参数说明
+### 三、URL参数说明
 
 #### 1、target参数(必须)：转换的目标（nekobox/nekoray、v2rayn/wireguard、clash）
 <img src="images\NekoBox订阅.png" />
@@ -54,13 +56,13 @@
 
 <img src="images\mtu参数.png" />
 
-### 三、v2rayN、NekoBox客户端使用截图，其它客户端的截图省略
+### 四、v2rayN、NekoBox客户端使用截图，其它客户端的截图省略
 
 <img src="images\v2rayN客户端中使用.png" />
 
 <img src="images\NekoBox客户端中使用.png" />
 
-### 四、相关工具
+### 五、相关工具
 
 ##### 1、[NekoBox](https://github.com/MatsuriDayo/nekoray)
 

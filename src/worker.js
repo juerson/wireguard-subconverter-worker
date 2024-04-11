@@ -95,7 +95,7 @@ export default {
           let proxiesNames = [];
           endpoints.forEach(ip_with_port => {
             let [proxyName, clashNode] = buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
-            if (proxiesNames !== "") {
+            if (proxyName !== "" || clashNode !== "" ) {
               clashNodes.push(clashNode);
               proxiesNames.push(`      - ${proxyName}`);
             }

@@ -42,6 +42,7 @@ var worker_default = {
     let nodeSize = url.searchParams.get("nodeSize") || randomNodeSize;
     let ipSize = url.searchParams.get("ipSize") || randomIpSize;
     let portSize = url.searchParams.get("portSize") || randomPortSize;
+    MTU = url.searchParams.get("mtu") || MTU;
     let ips_with_ports = [];
     generateRandomIPv4InRange(newcidrs, ipSize).forEach((ip) => {
       getRandomElementsFromArray(ports, portSize).forEach((port) => {
@@ -83,8 +84,10 @@ var worker_default = {
           let proxiesNames = [];
           endpoints.forEach((ip_with_port) => {
             let [proxyName, clashNode] = buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
-            clashNodes.push(clashNode);
-            proxiesNames.push(`      - ${proxyName}`);
+            if (proxyName !== "" || clashNode !== "") {
+              clashNodes.push(clashNode);
+              proxiesNames.push(`      - ${proxyName}`);
+            }
           });
           if (clashConfig.length > 0) {
             clashConfig = clashConfig.replace(/  - {name: 01, server: 127.0.0.1, port: 80, type: ss, cipher: aes-128-gcm, password: a123456}/g, clashNodes.join("\n"));

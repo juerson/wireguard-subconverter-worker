@@ -95,8 +95,10 @@ export default {
           let proxiesNames = [];
           endpoints.forEach(ip_with_port => {
             let [proxyName, clashNode] = buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
-            clashNodes.push(clashNode);
-            proxiesNames.push(`      - ${proxyName}`);
+            if (proxiesNames !== "") {
+              clashNodes.push(clashNode);
+              proxiesNames.push(`      - ${proxyName}`);
+            }
           });
           if (clashConfig.length > 0) {
             clashConfig = clashConfig.replace(/  - {name: 01, server: 127.0.0.1, port: 80, type: ss, cipher: aes-128-gcm, password: a123456}/g, clashNodes.join("\n"));

@@ -37,6 +37,9 @@ let randomIpSize = 1000; // 在cidrs中，海选出1000个IP地址(指总IP数�
 let randomPortSize = 10; // 在ports中，海选出10个端口，该值输入不合法(共54个端口)，则默认为10个随机端口；还有该值太大，会很大几率生成同一个IP对应不同的端口的情况出现
 let randomNodeSize = 300; // 从前面海选得到的IP和PORT后，将它们组合成一个新数组，从该数组中，随机挑300个数据，生成wireguard/nekoray链接
 
+// clash配置模板
+const CLASH_TEMPLATE_URL = "https://raw.githubusercontent.com/juerson/wireguard-subconverter-worker/master/clash.yaml";
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -80,6 +83,25 @@ export default {
           });
           let base64Nodes = btoa(nekorayLinks.join('\n'));
           return new Response(base64Nodes, {
+            status: 200,
+            headers: {
+              "Content-Type": "text/plain; charset=utf-8",
+            }
+          });
+        } else if (target.toLocaleLowerCase() === "clash") {
+          let clashConfig = await fetchWebPageContent(CLASH_TEMPLATE_URL);
+          let clashNodes = [];
+          let proxiesNames = [];
+          endpoints.forEach(ip_with_port => {
+            let [proxyName, clashNode] = buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
+            clashNodes.push(clashNode);
+            proxiesNames.push(`      - ${proxyName}`);
+          });
+          if (clashConfig.length > 0) {
+            clashConfig = clashConfig.replace(/  - {name: 01, server: 127.0.0.1, port: 80, type: ss, cipher: aes-128-gcm, password: a123456}/g, clashNodes.join("\n"));
+            clashConfig = clashConfig.replace(/      - 01/g, proxiesNames.join("\n"));
+          }
+          return new Response(clashConfig, {
             status: 200,
             headers: {
               "Content-Type": "text/plain; charset=utf-8",
@@ -267,6 +289,55 @@ function buildNekoRayLink(ip_with_port, wireguardParameters, Address, PrivateKey
   return nekoray_link;
 }
 
+
+function buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, mtu = 1408) {
+  let [server, port] = sliceIPAndPort(ip_with_port);
+  if (server === null && port === null) {
+    return ["", ""];
+  }
+  let ipv4 = Address[0].replace(/\/.*/, '');
+  let ipv6, reserved, private_key;
+  if (wireguardParameters.length === 0) {
+    private_key = PrivateKey;
+    ipv6 = Address.length === 2 ? Address[1].replace(/\/.*/, '') : "";
+  } else {
+    // 随机选择一个数据组
+    let randomGroup = wireguardParameters[Math.floor(Math.random() * wireguardParameters.length)];
+    private_key = randomGroup['privateKey'];
+    ipv6 = randomGroup['ipv6'].replace(/\/.*/, '');
+    reserved = randomGroup['reserved'];
+  }
+  let remarks = `warp-${ip_with_port}`;
+  let wireguard = {
+    "name": `${remarks}`,
+    "type": "wireguard",
+    "server": `${server}`,
+    "port": ``,
+    "ip": `${ipv4}`,
+    "ipv6": `${ipv6}`,
+    "private-key": `${private_key}`,
+    "public-key": `${PublicKey}`,
+    "pre-shared-key": "",
+    "reserved": "",
+    "udp": true,
+    "mtu": `${mtu}`,
+    // "remote-dns-resolve": true, // 强制dns远程解析，默认值为false
+    // "dns": ["1.1.1.1", "8.8.8.8"] // 仅在remote-dns-resolve为true时生效
+  };
+  // 下面写法，弥补直接传值变成字符串的问题
+  if (reserved.includes(",")) {
+    wireguard['reserved'] = reserved.split(",").map(Number);
+  } else {
+    wireguard['reserved'] = reserved;
+  }
+  wireguard['mtu'] = mtu;
+  wireguard['port'] = port;
+  wireguard['ip'] = ipv4;
+  // 将json数据压缩成一行字符串
+  let compressedJsonString = JSON.stringify(wireguard).replace(/\s+/g, '');
+  return [remarks, `  - ${compressedJsonString}`];
+}
+
 // 分割IP和端口
 function sliceIPAndPort(ip_with_port) {
   let matches = ip_with_port.match(/^\[?([^\]]+)\]?:([0-9]+)$/);
@@ -275,4 +346,20 @@ function sliceIPAndPort(ip_with_port) {
   } else {
     return [null, null];
   }
+}
+
+async function fetchWebPageContent(URL) {
+  try {
+    const response = await fetch(URL);
+    if (!response.ok) {
+      throw new Error(`Failed to get: ${response.status}`);
+      return "";
+    } else {
+      return await response.text();
+    }
+  } catch (err) {
+    console.error(`Failed to fetch ${URL} web conten: ${err.message}`);
+    return "";
+  }
+
 }

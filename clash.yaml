@@ -34,6 +34,7 @@ dns:
     'www.baidu.com,+.google.cn': ['https://doh.pub/dns-query','https://dns.alidns.com/dns-query']
     'geosite:private,apple': https://dns.alidns.com/dns-query
   nameserver: ['https://doh.pub/dns-query','https://dns.alidns.com/dns-query']
+  fallback: ['tls://1.0.0.1','tls://8.8.4.4']
   proxy-server-nameserver: ['https://doh.pub/dns-query','tls://1.0.0.1']
   fallback-filter:
     geoip: true

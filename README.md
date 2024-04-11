@@ -12,8 +12,8 @@
 
 将`_worker.js`或`src/worker.js`的代码部署到Cloudflare Workers或Pages后，可以实现如下的功能：
 
-- Cloudflare WARP（WireGuard）转换为 v2rayN、v2rayNG客户端使用的 wireguard 链接；
-- Cloudflare WARP（WireGuard）转换为 NekoBox 客户端使用的 nekoray 链接，安卓版的NekoBox不支持使用。
+- Cloudflare WARP（WireGuard）转换为 [v2rayN](https://github.com/2dust/v2rayN)、[v2rayNG](https://github.com/2dust/v2rayNG)客户端使用的 wireguard 链接；
+- Cloudflare WARP（WireGuard）转换为 [NekoBox](https://github.com/MatsuriDayo/nekoray) 客户端使用的 nekoray 链接，安卓版的NekoBox不支持使用。
 - Cloudflare WARP（WireGuard）转换为适配 clash.meta/mihomo/Clash Rev 内核的Clash配置文件订阅，经过测试支持[hiddify-next](https://github.com/hiddify/hiddify-next)、[clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev)、[clash-nyanpasu](https://github.com/LibNyanpasu/clash-nyanpasu)、[ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)客户端使用，如果发现无法联网使用，可以尝试修改Clash配置文件中的dns字段。
 
 <img src="images\转换流程图.png" />

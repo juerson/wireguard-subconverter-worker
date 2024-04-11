@@ -27,11 +27,11 @@ dns:
     - "*.blzstatic.cn"
     - "*.battle.net"
   nameserver-policy:
-    '+.baidu.com': '180.76.76.76'
-    '+.apple.com,+.icloud.com,+.bing.com': '8.8.8.8'
-    'toutiao.com,+.toutiao.com,+.douyin.com,': '180.184.1.1'
+    '*.baidu.com': '180.76.76.76'
+    '*.apple.com,*.icloud.com,*.bing.com': '8.8.8.8'
+    'toutiao.com,+.toutiao.com,*.douyin.com,*.ixigua.com,*.kuaishou.com': '180.184.1.1'
     'geosite:geolocation-cn': ['https://dns.alidns.com/dns-query','https://doh.pub/dns-query','https://doh.360.cn/dns-query']
-    'geosite:geolocation-!cn': ['udp://223.5.5.5',tls://8.8.8.8', 'https://1.0.0.1/dns-query']
+    'geosite:geolocation-!cn': ['udp://223.5.5.5', tls://8.8.8.8', 'https://1.0.0.1/dns-query']
     'www.baidu.com,+.google.cn': ['https://doh.pub/dns-query','https://dns.alidns.com/dns-query']
     'geosite:private,apple': https://dns.alidns.com/dns-query
   nameserver: ['https://doh.pub/dns-query','https://dns.alidns.com/dns-query']

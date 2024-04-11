@@ -16,6 +16,8 @@
 - Cloudflare WARP（WireGuard）转换为 NekoBox 客户端使用的 nekoray 链接，安卓版的NekoBox不支持使用。
 - Cloudflare WARP（WireGuard）转换为适配 clash.meta/mihomo/Clash Rev 内核的Clash配置文件订阅，经过测试支持[hiddify-next](https://github.com/hiddify/hiddify-next)、[clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev)、[clash-nyanpasu](https://github.com/LibNyanpasu/clash-nyanpasu)、[ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)客户端使用，如果发现无法联网使用，可以尝试修改Clash配置文件中的dns字段。
 
+<img src="images\转换流程图.png" />
+
 ### 二、使用注意
 
 - 1、不支持IPv6 CIDR的参数值传入（不支持生成IPv6地址），也不支持优选IP。

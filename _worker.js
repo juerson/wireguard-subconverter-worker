@@ -32,6 +32,7 @@ var ports = [854, 859, 864, 878, 880, 890, 891, 894, 903, 908, 928, 934, 939, 94
 var randomIpSize = 1e3;
 var randomPortSize = 10;
 var randomNodeSize = 300;
+var CLASH_TEMPLATE_URL = "https://raw.githubusercontent.com/juerson/wireguard-subconverter-worker/master/clash.yaml";
 var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -71,6 +72,25 @@ var worker_default = {
           });
           let base64Nodes = btoa(nekorayLinks.join("\n"));
           return new Response(base64Nodes, {
+            status: 200,
+            headers: {
+              "Content-Type": "text/plain; charset=utf-8"
+            }
+          });
+        } else if (target.toLocaleLowerCase() === "clash") {
+          let clashConfig = await fetchWebPageContent(CLASH_TEMPLATE_URL);
+          let clashNodes = [];
+          let proxiesNames = [];
+          endpoints.forEach((ip_with_port) => {
+            let [proxyName, clashNode] = buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
+            clashNodes.push(clashNode);
+            proxiesNames.push(`      - ${proxyName}`);
+          });
+          if (clashConfig.length > 0) {
+            clashConfig = clashConfig.replace(/  - {name: 01, server: 127.0.0.1, port: 80, type: ss, cipher: aes-128-gcm, password: a123456}/g, clashNodes.join("\n"));
+            clashConfig = clashConfig.replace(/      - 01/g, proxiesNames.join("\n"));
+          }
+          return new Response(clashConfig, {
             status: 200,
             headers: {
               "Content-Type": "text/plain; charset=utf-8"
@@ -235,12 +255,70 @@ function buildNekoRayLink(ip_with_port, wireguardParameters2, Address2, PrivateK
   let nekoray_link = "nekoray://custom#" + btoa(nekoray_compress);
   return nekoray_link;
 }
+function buildClashNode(ip_with_port, wireguardParameters2, Address2, PrivateKey2, PublicKey2, mtu = 1408) {
+  let [server, port] = sliceIPAndPort(ip_with_port);
+  if (server === null && port === null) {
+    return ["", ""];
+  }
+  let ipv4 = Address2[0].replace(/\/.*/, "");
+  let ipv6, reserved, private_key;
+  if (wireguardParameters2.length === 0) {
+    private_key = PrivateKey2;
+    ipv6 = Address2.length === 2 ? Address2[1].replace(/\/.*/, "") : "";
+  } else {
+    let randomGroup = wireguardParameters2[Math.floor(Math.random() * wireguardParameters2.length)];
+    private_key = randomGroup["privateKey"];
+    ipv6 = randomGroup["ipv6"].replace(/\/.*/, "");
+    reserved = randomGroup["reserved"];
+  }
+  let remarks = `warp-${ip_with_port}`;
+  let wireguard = {
+    "name": `${remarks}`,
+    "type": "wireguard",
+    "server": `${server}`,
+    "port": ``,
+    "ip": `${ipv4}`,
+    "ipv6": `${ipv6}`,
+    "private-key": `${private_key}`,
+    "public-key": `${PublicKey2}`,
+    "pre-shared-key": "",
+    "reserved": "",
+    "udp": true,
+    "mtu": `${mtu}`
+    // "remote-dns-resolve": true, // 强制dns远程解析，默认值为false
+    // "dns": ["1.1.1.1", "8.8.8.8"] // 仅在remote-dns-resolve为true时生效
+  };
+  if (reserved.includes(",")) {
+    wireguard["reserved"] = reserved.split(",").map(Number);
+  } else {
+    wireguard["reserved"] = reserved;
+  }
+  wireguard["mtu"] = mtu;
+  wireguard["port"] = port;
+  wireguard["ip"] = ipv4;
+  let compressedJsonString = JSON.stringify(wireguard).replace(/\s+/g, "");
+  return [remarks, `  - ${compressedJsonString}`];
+}
 function sliceIPAndPort(ip_with_port) {
   let matches = ip_with_port.match(/^\[?([^\]]+)\]?:([0-9]+)$/);
   if (matches) {
     return [matches[1], parseInt(matches[2])];
   } else {
     return [null, null];
+  }
+}
+async function fetchWebPageContent(URL2) {
+  try {
+    const response = await fetch(URL2);
+    if (!response.ok) {
+      throw new Error(`Failed to get: ${response.status}`);
+      return "";
+    } else {
+      return await response.text();
+    }
+  } catch (err) {
+    console.error(`Failed to fetch ${URL2} web conten: ${err.message}`);
+    return "";
   }
 }
 export {

@@ -4,6 +4,7 @@ allow-lan: true
 mode: Rule
 log-level: info
 external-controller: :9090
+global-client-fingerprint: chrome
 dns:
   enable: true
   listen: :53

@@ -12,7 +12,7 @@
 
 - Cloudflare WARP（WireGuard）转换为 v2rayN 客户端的 wireguard 链接；
 - Cloudflare WARP（WireGuard）转换为 NekoBox 客户端的 nekoray 链接。
-- Cloudflare WARP（WireGuard）转换为 clash.meta 订阅链接。
+- Cloudflare WARP（WireGuard）转换为 clash.meta 配置订阅。
 
 使用注意：
 

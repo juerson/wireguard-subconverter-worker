@@ -5,11 +5,9 @@ mode: Rule
 log-level: info
 external-controller: :9090
 global-client-fingerprint: chrome
-clash-for-android:
-  append-system-dns: false
 dns:
   enable: true
-  listen: 127.0.0.1:53
+  listen: :53
   default-nameserver: [223.5.5.5, 119.29.29.29]
   ipv6: false
   enhanced-mode: fake-ip

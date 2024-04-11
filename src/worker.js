@@ -50,6 +50,7 @@ export default {
     let nodeSize = url.searchParams.get('nodeSize') || randomNodeSize;
     let ipSize = url.searchParams.get('ipSize') || randomIpSize;
     let portSize = url.searchParams.get('portSize') || randomPortSize;
+    MTU = url.searchParams.get('mtu') || MTU; // 添加修改MTU值
     // 收集IP:PORT
     let ips_with_ports = [];
     // 在newcidrs范围内，生成随机一定数量的IP地址

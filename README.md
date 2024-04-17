@@ -30,7 +30,7 @@
 
 - 5、不支持Android版的NekoBox。
 
-- 6、排除warp账号的流量为零和cloudflare warp网络问题的情况下，你还是不能联网、网速慢，可以考虑修改[MTU](https://github.com/juerson/wireguard-subconverter-worker/blob/c162ad6c5a4dcafdb985331faee84d0ebbd0c89e/src/worker.js#L30)的值，参考[这里](https://gist.github.com/nitred/f16850ca48c48c79bf422e90ee5b9d95)的表格酌情修改，网速有很明显的变化，需要联网一会，不是网络立刻提升的，网速时快时慢。
+- 6、排除warp账号的流量为零和cloudflare warp网络问题的情况下，你还是不能联网、网速慢，可以考虑修改[MTU](https://github.com/juerson/wireguard-subconverter-worker/blob/4e27b8c474870ca7501365e3be80781607370c7b/src/worker.js#L30)的值（也可以在url订阅链接中传入），参考[这里](https://gist.github.com/nitred/f16850ca48c48c79bf422e90ee5b9d95)的表格酌情修改，网速有很明显的变化，有时需要联网一会，不是网络立刻提升的，网速时快时慢。(代码中将mtu的值修改了，clash-verge-rev能用，网速很快，但是在hiddify-next不能用，只能设置默认的1280，网速不理想，您可以在订阅链接中传入，应该是clash内核不同导致的)。
 
 ### 三、URL参数说明
 

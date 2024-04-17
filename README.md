@@ -30,7 +30,7 @@
 
 - 5、不支持Android版的NekoBox。
 
-- 6、排除账号容量为零(包含普通warp账号)和cloudflare warp网络问题的情况下，你还是不能联网、网速慢，可以考虑修改[MTU](https://github.com/juerson/wireguard-subconverter-worker/blob/afde84b06dbf29bf980f337ebfe693c7134c21f2/src/worker.js#L30)的值，参考[这里](https://gist.github.com/nitred/f16850ca48c48c79bf422e90ee5b9d95)的表格酌情修改，网速有很明显的变化，需要联网一会，不是网络立刻提升的，网速时快时慢。
+- 6、排除账号容量为零(包含普通warp账号)和cloudflare warp网络问题的情况下，你还是不能联网、网速慢，可以考虑修改[MTU](https://github.com/juerson/wireguard-subconverter-worker/blob/fb1f1957fa31cb1b9fe100fdd016587ba75faf95/src/worker.js#L30)的值，参考[这里](https://gist.github.com/nitred/f16850ca48c48c79bf422e90ee5b9d95)的表格酌情修改，网速有很明显的变化，需要联网一会，不是网络立刻提升的，网速时快时慢。
 
 ### 三、URL参数说明
 

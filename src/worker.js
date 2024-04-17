@@ -317,7 +317,7 @@ function buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, 
     "name": `${remarks}`,
     "type": "wireguard",
     "server": `${server}`,
-    "port": ``,
+    "port": 2408,
     "ip": `${ipv4}`,
     "ipv6": `${ipv6}`,
     "private-key": `${private_key}`,
@@ -325,24 +325,25 @@ function buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, 
     "pre-shared-key": "",
     "reserved": "",
     "udp": true,
-    "mtu": `${mtu}`,
-    "remote-dns-resolve": true, // 强制dns远程解析，默认值为false
+    "mtu": 1280,
+    // 强制dns远程解析，默认值为false
+    "remote-dns-resolve": true,
+    // 仅在remote-dns-resolve为true时生效
     "dns": [
       "1.1.1.1",
       "1.0.0.1",
       "2606:4700:4700::1111",
       "2606:4700:4700::1001"
-    ] // 仅在remote-dns-resolve为true时生效
+    ]
   };
-  // 下面写法，弥补直接传值变成字符串的问题
   if (reserved.includes(",")) {
     wireguard['reserved'] = reserved.split(",").map(Number);
   } else {
     wireguard['reserved'] = reserved;
   }
-  wireguard['mtu'] = mtu;
-  wireguard['port'] = port;
-  wireguard['ip'] = ipv4;
+  // 下面写法，弥补直接传值变成字符串的问题
+  wireguard['mtu'] = Number(mtu);
+  wireguard['port'] = Number(port);
   // 将json数据压缩成一行字符串
   let compressedJsonString = JSON.stringify(wireguard).replace(/\s+/g, '');
   return [remarks, `  - ${compressedJsonString}`];

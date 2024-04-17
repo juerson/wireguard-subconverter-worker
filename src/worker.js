@@ -22,12 +22,12 @@ let wireguardParameters = [
   { 'privateKey': 'gO/NAt7kT3zNWk6OiQ5Ru9A2ksAr96sPxxr68B8TtH0=', 'ipv6': '2606:4700:110:8775:bf6c:a489:d6db:fd76/128', 'reserved': "42,76,32" },
   { 'privateKey': 'iBtKwA/VDkj1n8uFD0v+E3bIQHMPWsRagclDwr6lUVI=', 'ipv6': '2606:4700:110:8dcd:e0e6:7c9a:c35e:2ece/128', 'reserved': "206,39,0" },
 ];
-// 它们也是wireguard的参数
+// 它们也是wireguard的参数（当wireguardParameters的数据不存在时，才会使用它）
 let PrivateKey = "OOrigZsSjw2YaY4urjbbU4/BNOZKXqW6EYNm8XKLtkU=";
 let Address = ["172.16.0.2/32", "2606:4700:110:82ce:bdeb:e72d:572a:e280/128"];
 let PublicKey = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=";
 let encoded_PublicKey = encodeURIComponent(PublicKey);
-let MTU = 1408; // 1280
+let MTU = 1387; // 1280
 
 let cidrs = ['162.159.192.0/24', '162.159.193.0/24', '162.159.195.0/24', '188.114.96.0/24', '188.114.97.0/24', '188.114.98.0/24', '188.114.99.0/24'];
 let ports = [854, 859, 864, 878, 880, 890, 891, 894, 903, 908, 928, 934, 939, 942, 943, 945, 946, 955, 968, 987, 988, 1002, 1010, 1014, 1018, 1070, 1074, 1180, 1387, 1843, 2371, 2506, 3138, 3476, 3581, 3854, 4177, 4198, 4233, 5279, 5956, 7103, 7152, 7156, 7281, 7559, 8319, 8742, 8854, 8886, 2408, 500, 4500, 1701];
@@ -95,7 +95,7 @@ export default {
           let proxiesNames = [];
           endpoints.forEach(ip_with_port => {
             let [proxyName, clashNode] = buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
-            if (proxyName !== "" || clashNode !== "" ) {
+            if (proxyName !== "" || clashNode !== "") {
               clashNodes.push(clashNode);
               proxiesNames.push(`      - ${proxyName}`);
             }
@@ -207,7 +207,8 @@ function getRandomElementsFromArray(arr, n = 10) {
   return result;
 }
 
-function buildWireGuardLink(ip_with_port, wireguardParameters, Address, PrivateKey, encoded_PublicKey, MTU = 1408) {
+// 生成WireGuard链接
+function buildWireGuardLink(ip_with_port, wireguardParameters, Address, PrivateKey, encoded_PublicKey, MTU = 1280) {
   // 分割IP和端口
   let [ip, port] = sliceIPAndPort(ip_with_port);
   if (ip === null && port === null) {
@@ -236,7 +237,8 @@ function buildWireGuardLink(ip_with_port, wireguardParameters, Address, PrivateK
   return wireguardLinks;
 }
 
-function buildNekoRayLink(ip_with_port, wireguardParameters, Address, PrivateKey, public_key, mtu = 1408) {
+// 生成NekoRay链接
+function buildNekoRayLink(ip_with_port, wireguardParameters, Address, PrivateKey, public_key, mtu = 1280) {
   // 分割IP和端口
   let [ip, port] = sliceIPAndPort(ip_with_port);
   if (ip === null && port === null) {
@@ -292,8 +294,8 @@ function buildNekoRayLink(ip_with_port, wireguardParameters, Address, PrivateKey
   return nekoray_link;
 }
 
-
-function buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, mtu = 1408) {
+// 生成Clash节点配置
+function buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, mtu = 1280) {
   let [server, port] = sliceIPAndPort(ip_with_port);
   if (server === null && port === null) {
     return ["", ""];
@@ -324,8 +326,13 @@ function buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, 
     "reserved": "",
     "udp": true,
     "mtu": `${mtu}`,
-    // "remote-dns-resolve": true, // 强制dns远程解析，默认值为false
-    // "dns": ["1.1.1.1", "8.8.8.8"] // 仅在remote-dns-resolve为true时生效
+    "remote-dns-resolve": true, // 强制dns远程解析，默认值为false
+    "dns": [
+      "1.1.1.1",
+      "1.0.0.1",
+      "2606:4700:4700::1111",
+      "2606:4700:4700::1001"
+    ] // 仅在remote-dns-resolve为true时生效
   };
   // 下面写法，弥补直接传值变成字符串的问题
   if (reserved.includes(",")) {

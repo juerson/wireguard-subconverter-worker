@@ -15,37 +15,44 @@
 - Cloudflare WARP（WireGuard）转换为 [v2rayN](https://github.com/2dust/v2rayN)、[v2rayNG](https://github.com/2dust/v2rayNG)客户端使用的 wireguard 链接；
 - Cloudflare WARP（WireGuard）转换为 [NekoBox](https://github.com/MatsuriDayo/nekoray) 客户端使用的 nekoray 链接，安卓版的NekoBox不支持使用。
 - Cloudflare WARP（WireGuard）转换为适配 clash.meta/mihomo/Clash Rev 内核的Clash配置文件订阅，经过测试支持[hiddify-next](https://github.com/hiddify/hiddify-next)、[clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev)、[clash-nyanpasu](https://github.com/LibNyanpasu/clash-nyanpasu)、[ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)客户端使用，如果发现无法联网使用，可以尝试修改Clash配置文件中的dns字段的内容。
+- Cloudflare WARP（WireGuard）转换为[hiddify-next](https://github.com/hiddify/hiddify-next)的JSON配置。
 
 <img src="images\转换流程图.png" />
 
 ### 二、使用注意
 
-- 1、不支持IPv6 CIDR的参数值传入（不支持生成IPv6地址），也不支持优选IP。
-
-- 2、由于随机生成IP和随机获取PORT，每次网络请求，获取到内容都在变，导致节点链接也在变。
-
-- 3、代码中`wireguardParameters`中的参数是warp普通账号的参数，建议更换成自己的参数（Plus账号、Zero Trust团队账号的参数）。
-
-- 4、根据个人使用情况，酌情修改`CLASH_TEMPLATE_URL`的clash配置模板。
-
-- 5、不支持Android版的NekoBox。
-
-- 6、排除warp账号的流量为零和cloudflare warp网络问题的情况下，你还是不能联网、网速慢，可以考虑修改[MTU](https://github.com/juerson/wireguard-subconverter-worker/blob/4e27b8c474870ca7501365e3be80781607370c7b/src/worker.js#L30)的值（也可以在url订阅链接中传入），参考[这里](https://gist.github.com/nitred/f16850ca48c48c79bf422e90ee5b9d95)的表格酌情修改，网速有很明显的变化，有时需要联网一会，不是网络立刻提升的，网速时快时慢。(代码中将mtu的值修改了，clash-verge-rev能用，网速很快，但是在hiddify-next不能用，代码中设置默认的1280才通用，网速不理想，您可以在订阅链接中传入，应该是clash内核不同导致的)。
+- 1、不支持Android版的NekoBox。
+- 2、不支持IPv6 CIDR的参数值传入（不支持生成IPv6地址），也不支持优选IP。
+- 3、由于是随机生成IP和PORT的，每次网络请求，获取到IP和PORT都在变，导致节点也在变，可以通过更新订阅更换原来的节点。
+- 4、代码中`wireguardParameters`中的参数是warp普通账号的参数，建议更换成自己的参数（Plus账号、Zero Trust团队账号的参数）。
+- 5、排除warp账号的流量为零和cloudflare warp网络问题、IP问题的情况下，你还是不能联网、网速慢，可以考虑修改[MTU](https://github.com/juerson/wireguard-subconverter-worker/blob/4e27b8c474870ca7501365e3be80781607370c7b/src/worker.js#L30)的值，参考[这里](https://gist.github.com/nitred/f16850ca48c48c79bf422e90ee5b9d95)的表格酌情修改，网速有很明显的变化，有时需要联网一会，不是网络立刻提升的，网速时快时慢。注意：在代码中修改mtu值，可能导致其它客户端无法正常使用，推荐从url订阅链接中传入mtu参数来修改mtu值。
+- 6、转为Hiddify的JSON配置，在Hiddify客户端中`点击连接`时，可能出现Hiddify程序闪退问题，只要JSON的配置没有语法错误，重新打开就能使用，如果想解决闪退问题，可以尝试修改生成的节点数量，可以从外部传入nodeSize参数，限制节点数量(代码里面也有限制Hiddify的节点数量的，nodeSize超出对应的数量，节点数量不会随nodeSize增加而增加)。
 
 ### 三、URL参数说明
 
-#### 1、target参数(必须)：转换的目标（nekobox/nekoray、v2rayn/wireguard、clash）
+#### 1、target参数(必须)：
+
+转换的目标客户端：nekobox/nekoray、v2rayn/wireguard、clash、hiddify
+
 <img src="images\NekoBox订阅.png" />
 
 <img src="images\v2rayN订阅.png" />
 
 <img src="images\clash.mate订阅.png" />
 
-#### 2、cidrs参数(可选)：限制所有的IP来源哪个/哪些IPv4 CIDR中?
+<img src="images\hiddify订阅.png" />
+
+#### 2、cidrs参数(可选)：
+
+限制所有的IP来源哪个/哪些IPv4 CIDR中?
 
 <img src="images\cidrs参数.png" />
 
-#### 3、nodeSize参数(可选)：您想要多少条wiregaurd/nekoray链接？默认300条。
+#### 3、nodeSize参数(可选)：
+
+您想要多少条wiregaurd链接、nekoray链接、clash节点？默认300条。
+
+注：hiddify的，会在这个nodeSize数量的基础上，再次限制数量(最多70*2=140个、200个)。
 
 <img src="images\nodeSize参数.png" />
 
@@ -59,6 +66,12 @@
 修改MTU的值，有一定几率提高网速，也可能导致没有网络，不会的不要修改它。
 
 <img src="images\mtu参数.png" />
+
+#### 6、loc/location参数(可选)：
+
+当没有传入cidrs参数值时，对所有要转换的目标客户端生效，`loc=us` 指定IP段是以162开头的IP；`loc=gb` 则指定IP段是188开头的IP。
+
+<img src="images\loc参数.png" />
 
 ### 四、v2rayN、NekoBox客户端使用截图，其它客户端的截图省略
 

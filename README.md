@@ -49,7 +49,7 @@ https://a.abc.workers.dev/sub?target=clash
 - Cloudflare WARP（WireGuard）转换为 [v2rayN](https://github.com/2dust/v2rayN)、[v2rayNG](https://github.com/2dust/v2rayNG) 客户端使用的 `wireguard://` 链接；
 - Cloudflare WARP（WireGuard）转换为 [NekoBox](https://github.com/MatsuriDayo/nekoray) 客户端使用的 `nekoray://` 链接，Android 版的 NekoBox 不支持使用。
 - Cloudflare WARP（WireGuard）转换为适配 clash.meta / mihomo / clash rev 内核的 Clash 配置文件订阅，经过测试支持 [hiddify-next](https://github.com/hiddify/hiddify-next)、[clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev)、[clash-nyanpasu](https://github.com/LibNyanpasu/clash-nyanpasu)、[ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid) 客户端使用，如果发现无法联网使用，可以尝试修改 Clash 配置文件头部的 dns 字段的内容。
-- Cloudflare WARP（WireGuard）转换为 [hiddify-next](https://github.com/hiddify/hiddify-next) 的 JSON 配置，这个 JSON 配置好似 sing-box 的配置文件，不知还能在哪些客户端中使用？
+- Cloudflare WARP（WireGuard）转换为 [hiddify-next](https://github.com/hiddify/hiddify-next) 的 JSON 配置。
 
 ### 三、使用注意
 

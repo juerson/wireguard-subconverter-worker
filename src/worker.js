@@ -46,6 +46,8 @@ export default {
 		const url = new URL(request.url);
 		// 从请求url中，获取参数的值（target、cidrs、nodeSize、ipSize、portSize、loc/location、detour）
 		let target = url.searchParams.get('target') || ""; // 转换为目标客户端或链接类型，v2rayn/wireguard、nekobox/nekoray
+		let pwd = url.searchParams.get('pwd') || ""; // 访问的密码
+		let password = env.PASSWORD || ""; // cloudflare后台设置的密码，跟 pwd 的值对比
 		let cidrsValue = url.searchParams.get('cidrs') || "";
 		let newcidrs = cidrsValue ? cidrsValue.trim().split(',') : cidrs;
 		let nodeSize = url.searchParams.get('nodeSize') || randomNodeSize;
@@ -59,6 +61,13 @@ export default {
 			newcidrs = cidrs.filter(item => item.startsWith("162")); // 162开头的cidr
 		}
 		MTU = url.searchParams.get('mtu') || MTU; // 修改MTU值
+
+		// 条件成立后，将除了字母、数字、下划线、连字符和点号之外的所有字符进行编码
+		if (pwd) {
+			password = encodeURIComponent(password);
+			pwd = encodeURIComponent(pwd);
+		}
+
 		// 收集IP:PORT
 		let ips_with_ports = [];
 		// 在newcidrs范围内，生成随机一定数量的IP地址
@@ -68,125 +77,129 @@ export default {
 				ips_with_ports.push(`${ip}:${port}`);
 			});
 		});
+
 		switch (url.pathname) {
 			case '/sub':
-				let endpoints = getRandomElementsFromArray(ips_with_ports, nodeSize);
-				if (target.toLocaleLowerCase() === "v2rayn" || target.toLocaleLowerCase() === "wireguard") {
-					let wireguardLinks = [];
-					endpoints.forEach(ip_with_port => {
-						let wireguardLink = buildWireGuardLink(ip_with_port, wireguardParameters, Address, PrivateKey, encoded_PublicKey, MTU);
-						wireguardLinks.push(wireguardLink);
-					});
-					let base64Nodes = btoa(wireguardLinks.join('\n'));
-					return new Response(base64Nodes, {
-						status: 200,
-						headers: {
-							"Content-Type": "text/plain; charset=utf-8",
+				// 密码正确才能访问订阅
+				if (password === pwd) {
+					let endpoints = getRandomElementsFromArray(ips_with_ports, nodeSize);
+					if (target.toLocaleLowerCase() === "v2rayn" || target.toLocaleLowerCase() === "wireguard") {
+						let wireguardLinks = [];
+						endpoints.forEach(ip_with_port => {
+							let wireguardLink = buildWireGuardLink(ip_with_port, wireguardParameters, Address, PrivateKey, encoded_PublicKey, MTU);
+							wireguardLinks.push(wireguardLink);
+						});
+						let base64Nodes = btoa(wireguardLinks.join('\n'));
+						return new Response(base64Nodes, {
+							status: 200,
+							headers: {
+								"Content-Type": "text/plain; charset=utf-8",
+							}
+						});
+					} else if (target.toLocaleLowerCase() === "nekobox" || target.toLocaleLowerCase() === "nekoray") {
+						let nekorayLinks = [];
+						endpoints.forEach(ip_with_port => {
+							let nekorayLink = buildNekoRayLink(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
+							nekorayLinks.push(nekorayLink);
+						});
+						let base64Nodes = btoa(nekorayLinks.join('\n'));
+						return new Response(base64Nodes, {
+							status: 200,
+							headers: {
+								"Content-Type": "text/plain; charset=utf-8",
+							}
+						});
+					} else if (target.toLocaleLowerCase() === "clash") {
+						let clashConfig = await fetchWebPageContent(CLASH_TEMPLATE_URL);
+						let clashNodes = [];
+						let proxiesNames = [];
+						endpoints.forEach(ip_with_port => {
+							let [proxyName, clashNode] = buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
+							if (proxyName !== "" || clashNode !== "") {
+								clashNodes.push(clashNode);
+								proxiesNames.push(`      - ${proxyName}`);
+							}
+						});
+						if (clashConfig.length > 0) {
+							// atob函数的字符串为"  - {name: 01, server: 127.0.0.1, port: 80, type: ss, cipher: aes-128-gcm, password: a123456}"的base64编码
+							clashConfig = clashConfig.replace(new RegExp(atob("ICAtIHtuYW1lOiAwMSwgc2VydmVyOiAxMjcuMC4wLjEsIHBvcnQ6IDgwLCB0eXBlOiBzcywgY2lwaGVyOiBhZXMtMTI4LWdjbSwgcGFzc3dvcmQ6IGExMjM0NTZ9"), "g"), clashNodes.join("\n"));
+							// atob函数的字符串为"      - 01"的base64编码
+							clashConfig = clashConfig.replace(new RegExp(atob("ICAgICAgLSAwMQ=="), "g"), proxiesNames.join("\n"));
 						}
-					});
-				} else if (target.toLocaleLowerCase() === "nekobox" || target.toLocaleLowerCase() === "nekoray") {
-					let nekorayLinks = [];
-					endpoints.forEach(ip_with_port => {
-						let nekorayLink = buildNekoRayLink(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
-						nekorayLinks.push(nekorayLink);
-					});
-					let base64Nodes = btoa(nekorayLinks.join('\n'));
-					return new Response(base64Nodes, {
-						status: 200,
-						headers: {
-							"Content-Type": "text/plain; charset=utf-8",
-						}
-					});
-				} else if (target.toLocaleLowerCase() === "clash") {
-					let clashConfig = await fetchWebPageContent(CLASH_TEMPLATE_URL);
-					let clashNodes = [];
-					let proxiesNames = [];
-					endpoints.forEach(ip_with_port => {
-						let [proxyName, clashNode] = buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
-						if (proxyName !== "" || clashNode !== "") {
-							clashNodes.push(clashNode);
-							proxiesNames.push(`      - ${proxyName}`);
-						}
-					});
-					if (clashConfig.length > 0) {
-						// atob函数的字符串为"  - {name: 01, server: 127.0.0.1, port: 80, type: ss, cipher: aes-128-gcm, password: a123456}"的base64编码
-						clashConfig = clashConfig.replace(new RegExp(atob("ICAtIHtuYW1lOiAwMSwgc2VydmVyOiAxMjcuMC4wLjEsIHBvcnQ6IDgwLCB0eXBlOiBzcywgY2lwaGVyOiBhZXMtMTI4LWdjbSwgcGFzc3dvcmQ6IGExMjM0NTZ9"), "g"), clashNodes.join("\n"));
-						// atob函数的字符串为"      - 01"的base64编码
-						clashConfig = clashConfig.replace(new RegExp(atob("ICAgICAgLSAwMQ=="), "g"), proxiesNames.join("\n"));
+						return new Response(clashConfig, {
+							status: 200,
+							headers: {
+								"Content-Type": "text/plain; charset=utf-8",
+							}
+						});
+					} else if (target.toLocaleLowerCase() === "hiddify" && detour.toLocaleLowerCase() === "on") {
+						let hiddifyString = await fetchWebPageContent(HIDDIFY_TEMPLATE_URL);
+						let hiddify = JSON.parse(hiddifyString); // 将 JSON 字符串解析为 JavaScript 对象
+
+						// 获取endpoints的前70个元素(实际节点有70*2=140个)，如果hiddify程序闪退，影响使用，就调小这个数字
+						let ip_with_port_list = endpoints.slice(0, 70);
+						let node_info_list = [];
+						ip_with_port_list.forEach(ip_with_port => {
+							let [name1, name2, node1, node2] = buildHiddifyDetourJSON(ip_with_port, wireguardParameters, PublicKey, MTU);
+							// 将代理名称追加到里面的outbounds的值中（数组中）
+							hiddify["outbounds"].forEach(obj => {
+								if (obj.hasOwnProperty('outbounds')) {
+									obj.outbounds.push(...[name1, name2]); // 往hiddify插入节点的名称
+								}
+							});
+							node_info_list.push(node1);
+							node_info_list.push(node2);
+						});
+						// 将生成的节点信息添加到hiddify JSON中
+						let index = 2; // 插入位置从2开始
+						node_info_list.forEach(function (element) {
+							hiddify["outbounds"].splice(index, 0, element); // 在指定位置插入节点信息
+							index++; // 更新插入位置
+						});
+
+						// 将 JSON 数据转换为字符串
+						let jsonString = JSON.stringify(hiddify, null, 2);
+
+						return new Response(jsonString, {
+							status: 200,
+							headers: {
+								"Content-Type": "text/plain; charset=utf-8",
+							}
+						});
+					} else if (target.toLocaleLowerCase() === "hiddify") {
+						let hiddifyString = await fetchWebPageContent(HIDDIFY_TEMPLATE_URL);
+						let hiddify = JSON.parse(hiddifyString); // 将 JSON 字符串解析为 JavaScript 对象
+
+						// 获取endpoints的前200个元素(实际节点就是200个)，如果hiddify程序闪退，影响使用，就调小这个数字
+						let ip_with_port_list = endpoints.slice(0, 200);
+						let node_info_list = [];
+						ip_with_port_list.forEach(ip_with_port => {
+							let [name, node] = buildHiddifyJSON(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
+							// 将代理名称追加到里面的outbounds的值中（数组中）
+							hiddify["outbounds"].forEach(obj => {
+								if (obj.hasOwnProperty('outbounds')) {
+									obj.outbounds.push(name); // 往hiddify插入节点的名称
+								}
+							});
+							node_info_list.push(node);
+						});
+						// 将生成的节点信息添加到hiddify JSON中
+						let index = 2;
+						node_info_list.forEach(function (element) {
+							hiddify["outbounds"].splice(index, 0, element); // 在指定位置插入节点信息
+							index++; // 更新插入位置
+						});
+
+						// 将 JSON 数据转换为字符串
+						let jsonString = JSON.stringify(hiddify, null, 2);
+
+						return new Response(jsonString, {
+							status: 200,
+							headers: {
+								"Content-Type": "text/plain; charset=utf-8",
+							}
+						});
 					}
-					return new Response(clashConfig, {
-						status: 200,
-						headers: {
-							"Content-Type": "text/plain; charset=utf-8",
-						}
-					});
-				} else if (target.toLocaleLowerCase() === "hiddify" && detour.toLocaleLowerCase() === "on") {
-					let hiddifyString = await fetchWebPageContent(HIDDIFY_TEMPLATE_URL);
-					let hiddify = JSON.parse(hiddifyString); // 将 JSON 字符串解析为 JavaScript 对象
-
-					// 获取endpoints的前70个元素(实际节点有70*2=140个)，如果hiddify程序闪退，影响使用，就调小这个数字
-					let ip_with_port_list = endpoints.slice(0, 70);
-					let node_info_list = [];
-					ip_with_port_list.forEach(ip_with_port => {
-						let [name1, name2, node1, node2] = buildHiddifyDetourJSON(ip_with_port, wireguardParameters, PublicKey, MTU);
-						// 将代理名称追加到里面的outbounds的值中（数组中）
-						hiddify["outbounds"].forEach(obj => {
-							if (obj.hasOwnProperty('outbounds')) {
-								obj.outbounds.push(...[name1, name2]); // 往hiddify插入节点的名称
-							}
-						});
-						node_info_list.push(node1);
-						node_info_list.push(node2);
-					});
-					// 将生成的节点信息添加到hiddify JSON中
-					let index = 2; // 插入位置从2开始
-					node_info_list.forEach(function (element) {
-						hiddify["outbounds"].splice(index, 0, element); // 在指定位置插入节点信息
-						index++; // 更新插入位置
-					});
-
-					// 将 JSON 数据转换为字符串
-					let jsonString = JSON.stringify(hiddify, null, 2);
-					
-					return new Response(jsonString, {
-						status: 200,
-						headers: {
-							"Content-Type": "text/plain; charset=utf-8",
-						}
-					});
-				} else if (target.toLocaleLowerCase() === "hiddify") {
-					let hiddifyString = await fetchWebPageContent(HIDDIFY_TEMPLATE_URL);
-					let hiddify = JSON.parse(hiddifyString); // 将 JSON 字符串解析为 JavaScript 对象
-
-					// 获取endpoints的前200个元素(实际节点就是200个)，如果hiddify程序闪退，影响使用，就调小这个数字
-					let ip_with_port_list = endpoints.slice(0, 200);
-					let node_info_list = [];
-					ip_with_port_list.forEach(ip_with_port => {
-						let [name, node] = buildHiddifyJSON(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
-						// 将代理名称追加到里面的outbounds的值中（数组中）
-						hiddify["outbounds"].forEach(obj => {
-							if (obj.hasOwnProperty('outbounds')) {
-								obj.outbounds.push(name); // 往hiddify插入节点的名称
-							}
-						});
-						node_info_list.push(node);
-					});
-					// 将生成的节点信息添加到hiddify JSON中
-					let index = 2;
-					node_info_list.forEach(function (element) {
-						hiddify["outbounds"].splice(index, 0, element); // 在指定位置插入节点信息
-						index++; // 更新插入位置
-					});
-
-					// 将 JSON 数据转换为字符串
-					let jsonString = JSON.stringify(hiddify, null, 2);
-
-					return new Response(jsonString, {
-						status: 200,
-						headers: {
-							"Content-Type": "text/plain; charset=utf-8",
-						}
-					});
 				}
 				default:
 					return new Response("Not found", {

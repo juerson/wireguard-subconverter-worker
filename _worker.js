@@ -38,6 +38,8 @@ var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     let target = url.searchParams.get("target") || "";
+    let pwd = url.searchParams.get("pwd") || "";
+    let password = env.PASSWORD || "";
     let cidrsValue = url.searchParams.get("cidrs") || "";
     let newcidrs = cidrsValue ? cidrsValue.trim().split(",") : cidrs;
     let nodeSize = url.searchParams.get("nodeSize") || randomNodeSize;
@@ -51,6 +53,10 @@ var worker_default = {
       newcidrs = cidrs.filter((item) => item.startsWith("162"));
     }
     MTU = url.searchParams.get("mtu") || MTU;
+    if (pwd) {
+      password = encodeURIComponent(password);
+      pwd = encodeURIComponent(pwd);
+    }
     let ips_with_ports = [];
     generateRandomIPv4InRange(newcidrs, ipSize).forEach((ip) => {
       getRandomElementsFromArray(ports, portSize).forEach((port) => {
@@ -59,107 +65,109 @@ var worker_default = {
     });
     switch (url.pathname) {
       case "/sub":
-        let endpoints = getRandomElementsFromArray(ips_with_ports, nodeSize);
-        if (target.toLocaleLowerCase() === "v2rayn" || target.toLocaleLowerCase() === "wireguard") {
-          let wireguardLinks = [];
-          endpoints.forEach((ip_with_port) => {
-            let wireguardLink = buildWireGuardLink(ip_with_port, wireguardParameters, Address, PrivateKey, encoded_PublicKey, MTU);
-            wireguardLinks.push(wireguardLink);
-          });
-          let base64Nodes = btoa(wireguardLinks.join("\n"));
-          return new Response(base64Nodes, {
-            status: 200,
-            headers: {
-              "Content-Type": "text/plain; charset=utf-8"
+        if (password === pwd) {
+          let endpoints = getRandomElementsFromArray(ips_with_ports, nodeSize);
+          if (target.toLocaleLowerCase() === "v2rayn" || target.toLocaleLowerCase() === "wireguard") {
+            let wireguardLinks = [];
+            endpoints.forEach((ip_with_port) => {
+              let wireguardLink = buildWireGuardLink(ip_with_port, wireguardParameters, Address, PrivateKey, encoded_PublicKey, MTU);
+              wireguardLinks.push(wireguardLink);
+            });
+            let base64Nodes = btoa(wireguardLinks.join("\n"));
+            return new Response(base64Nodes, {
+              status: 200,
+              headers: {
+                "Content-Type": "text/plain; charset=utf-8"
+              }
+            });
+          } else if (target.toLocaleLowerCase() === "nekobox" || target.toLocaleLowerCase() === "nekoray") {
+            let nekorayLinks = [];
+            endpoints.forEach((ip_with_port) => {
+              let nekorayLink = buildNekoRayLink(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
+              nekorayLinks.push(nekorayLink);
+            });
+            let base64Nodes = btoa(nekorayLinks.join("\n"));
+            return new Response(base64Nodes, {
+              status: 200,
+              headers: {
+                "Content-Type": "text/plain; charset=utf-8"
+              }
+            });
+          } else if (target.toLocaleLowerCase() === "clash") {
+            let clashConfig = await fetchWebPageContent(CLASH_TEMPLATE_URL);
+            let clashNodes = [];
+            let proxiesNames = [];
+            endpoints.forEach((ip_with_port) => {
+              let [proxyName, clashNode] = buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
+              if (proxyName !== "" || clashNode !== "") {
+                clashNodes.push(clashNode);
+                proxiesNames.push(`      - ${proxyName}`);
+              }
+            });
+            if (clashConfig.length > 0) {
+              clashConfig = clashConfig.replace(new RegExp(atob("ICAtIHtuYW1lOiAwMSwgc2VydmVyOiAxMjcuMC4wLjEsIHBvcnQ6IDgwLCB0eXBlOiBzcywgY2lwaGVyOiBhZXMtMTI4LWdjbSwgcGFzc3dvcmQ6IGExMjM0NTZ9"), "g"), clashNodes.join("\n"));
+              clashConfig = clashConfig.replace(new RegExp(atob("ICAgICAgLSAwMQ=="), "g"), proxiesNames.join("\n"));
             }
-          });
-        } else if (target.toLocaleLowerCase() === "nekobox" || target.toLocaleLowerCase() === "nekoray") {
-          let nekorayLinks = [];
-          endpoints.forEach((ip_with_port) => {
-            let nekorayLink = buildNekoRayLink(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
-            nekorayLinks.push(nekorayLink);
-          });
-          let base64Nodes = btoa(nekorayLinks.join("\n"));
-          return new Response(base64Nodes, {
-            status: 200,
-            headers: {
-              "Content-Type": "text/plain; charset=utf-8"
-            }
-          });
-        } else if (target.toLocaleLowerCase() === "clash") {
-          let clashConfig = await fetchWebPageContent(CLASH_TEMPLATE_URL);
-          let clashNodes = [];
-          let proxiesNames = [];
-          endpoints.forEach((ip_with_port) => {
-            let [proxyName, clashNode] = buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
-            if (proxyName !== "" || clashNode !== "") {
-              clashNodes.push(clashNode);
-              proxiesNames.push(`      - ${proxyName}`);
-            }
-          });
-          if (clashConfig.length > 0) {
-            clashConfig = clashConfig.replace(new RegExp(atob("ICAtIHtuYW1lOiAwMSwgc2VydmVyOiAxMjcuMC4wLjEsIHBvcnQ6IDgwLCB0eXBlOiBzcywgY2lwaGVyOiBhZXMtMTI4LWdjbSwgcGFzc3dvcmQ6IGExMjM0NTZ9"), "g"), clashNodes.join("\n"));
-            clashConfig = clashConfig.replace(new RegExp(atob("ICAgICAgLSAwMQ=="), "g"), proxiesNames.join("\n"));
+            return new Response(clashConfig, {
+              status: 200,
+              headers: {
+                "Content-Type": "text/plain; charset=utf-8"
+              }
+            });
+          } else if (target.toLocaleLowerCase() === "hiddify" && detour.toLocaleLowerCase() === "on") {
+            let hiddifyString = await fetchWebPageContent(HIDDIFY_TEMPLATE_URL);
+            let hiddify = JSON.parse(hiddifyString);
+            let ip_with_port_list = endpoints.slice(0, 70);
+            let node_info_list = [];
+            ip_with_port_list.forEach((ip_with_port) => {
+              let [name1, name2, node1, node2] = buildHiddifyDetourJSON(ip_with_port, wireguardParameters, PublicKey, MTU);
+              hiddify["outbounds"].forEach((obj) => {
+                if (obj.hasOwnProperty("outbounds")) {
+                  obj.outbounds.push(...[name1, name2]);
+                }
+              });
+              node_info_list.push(node1);
+              node_info_list.push(node2);
+            });
+            let index = 2;
+            node_info_list.forEach(function(element) {
+              hiddify["outbounds"].splice(index, 0, element);
+              index++;
+            });
+            let jsonString = JSON.stringify(hiddify, null, 2);
+            return new Response(jsonString, {
+              status: 200,
+              headers: {
+                "Content-Type": "text/plain; charset=utf-8"
+              }
+            });
+          } else if (target.toLocaleLowerCase() === "hiddify") {
+            let hiddifyString = await fetchWebPageContent(HIDDIFY_TEMPLATE_URL);
+            let hiddify = JSON.parse(hiddifyString);
+            let ip_with_port_list = endpoints.slice(0, 200);
+            let node_info_list = [];
+            ip_with_port_list.forEach((ip_with_port) => {
+              let [name, node] = buildHiddifyJSON(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
+              hiddify["outbounds"].forEach((obj) => {
+                if (obj.hasOwnProperty("outbounds")) {
+                  obj.outbounds.push(name);
+                }
+              });
+              node_info_list.push(node);
+            });
+            let index = 2;
+            node_info_list.forEach(function(element) {
+              hiddify["outbounds"].splice(index, 0, element);
+              index++;
+            });
+            let jsonString = JSON.stringify(hiddify, null, 2);
+            return new Response(jsonString, {
+              status: 200,
+              headers: {
+                "Content-Type": "text/plain; charset=utf-8"
+              }
+            });
           }
-          return new Response(clashConfig, {
-            status: 200,
-            headers: {
-              "Content-Type": "text/plain; charset=utf-8"
-            }
-          });
-        } else if (target.toLocaleLowerCase() === "hiddify" && detour.toLocaleLowerCase() === "on") {
-          let hiddifyString = await fetchWebPageContent(HIDDIFY_TEMPLATE_URL);
-          let hiddify = JSON.parse(hiddifyString);
-          let ip_with_port_list = endpoints.slice(0, 70);
-          let node_info_list = [];
-          ip_with_port_list.forEach((ip_with_port) => {
-            let [name1, name2, node1, node2] = buildHiddifyDetourJSON(ip_with_port, wireguardParameters, PublicKey, MTU);
-            hiddify["outbounds"].forEach((obj) => {
-              if (obj.hasOwnProperty("outbounds")) {
-                obj.outbounds.push(...[name1, name2]);
-              }
-            });
-            node_info_list.push(node1);
-            node_info_list.push(node2);
-          });
-          let index = 2;
-          node_info_list.forEach(function(element) {
-            hiddify["outbounds"].splice(index, 0, element);
-            index++;
-          });
-          let jsonString = JSON.stringify(hiddify, null, 2);
-          return new Response(jsonString, {
-            status: 200,
-            headers: {
-              "Content-Type": "text/plain; charset=utf-8"
-            }
-          });
-        } else if (target.toLocaleLowerCase() === "hiddify") {
-          let hiddifyString = await fetchWebPageContent(HIDDIFY_TEMPLATE_URL);
-          let hiddify = JSON.parse(hiddifyString);
-          let ip_with_port_list = endpoints.slice(0, 200);
-          let node_info_list = [];
-          ip_with_port_list.forEach((ip_with_port) => {
-            let [name, node] = buildHiddifyJSON(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, MTU);
-            hiddify["outbounds"].forEach((obj) => {
-              if (obj.hasOwnProperty("outbounds")) {
-                obj.outbounds.push(name);
-              }
-            });
-            node_info_list.push(node);
-          });
-          let index = 2;
-          node_info_list.forEach(function(element) {
-            hiddify["outbounds"].splice(index, 0, element);
-            index++;
-          });
-          let jsonString = JSON.stringify(hiddify, null, 2);
-          return new Response(jsonString, {
-            status: 200,
-            headers: {
-              "Content-Type": "text/plain; charset=utf-8"
-            }
-          });
         }
       default:
         return new Response("Not found", {

@@ -2,3 +2,6 @@ name = "wireguard-subconverter-worker"
 main = "src/worker.js"
 compatibility_date = "2024-04-04"
 workers_dev = true
+
+[vars]
+PASSWORD = "" # 访问密码

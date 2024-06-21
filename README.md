@@ -53,26 +53,26 @@ https://a.abc.workers.dev/sub?target=clash
 
 ### 三、使用注意
 
-- 1、不支持Android版的NekoBox。
-- 2、不支持IPv6 CIDR的参数值传入（不支持生成IPv6地址），也不支持优选IP。
-- 3、由于是随机生成IP和PORT的，每次网络请求，获取到IP和PORT都在变，导致节点也在变，可以通过更新订阅更换原来的节点。
-- 4、代码中`wireguardParameters`中的参数是warp普通账号的参数，建议更换成自己的参数（Plus账号、Zero Trust团队账号的参数）。
-- 5、排除warp账号的流量为零和 cloudflare warp 网络问题、IP问题的情况下，你还是不能联网、网速慢，可以考虑修改 [MTU](https://github.com/juerson/wireguard-subconverter-worker/blob/4e27b8c474870ca7501365e3be80781607370c7b/src/worker.js#L30) 的值，参考[这里](https://gist.github.com/nitred/f16850ca48c48c79bf422e90ee5b9d95)的表格酌情修改，网速有很明显的变化，有时需要联网一会，不是网络立刻提升的，网速时快时慢。注意：在代码中修改mtu值，可能导致其它客户端无法正常使用，推荐从url订阅链接中，传入mtu参数来修改mtu值。如果是 clash 配置的，就修改 clash 配置文件的头部 dns 字段的内容。
-- 6、转为 Hiddify 的 JSON 配置，在 Hiddify 客户端中`点击连接`时，可能出现 Hiddify 程序闪退问题，只要 JSON 的配置没有语法错误，重新打开就能使用，如果想解决闪退问题，可以尝试修改生成的节点数量，可以从外部传入nodeSize参数，限制节点数量(代码里面也有限制 Hiddify 的节点数量的，nodeSize 超出对应的数量，节点数量不会随 nodeSize 增加而增加)。
+- 1、不支持Android版的NekoBox，也不支持优选IP。
+- 2、由于是随机生成IP和PORT的，每次网络请求，获取到IP和PORT都在变，导致节点也在变，可以通过更新订阅更换原来的节点。
+- 3、代码中`wireguardParameters`中的参数是warp普通账号的参数，建议更换成自己的参数（Plus账号、Zero Trust团队账号的参数）。
+- 4、排除warp账号的流量为零和 cloudflare warp 网络问题、IP问题的情况下，你还是不能联网、网速慢，可以考虑修改 [MTU](https://github.com/juerson/wireguard-subconverter-worker/blob/4e27b8c474870ca7501365e3be80781607370c7b/src/worker.js#L30) 的值，参考[这里](https://gist.github.com/nitred/f16850ca48c48c79bf422e90ee5b9d95)的表格酌情修改，网速有很明显的变化，有时需要联网一会，不是网络立刻提升的，网速时快时慢。注意：在代码中修改mtu值，可能导致其它客户端无法正常使用，推荐从url订阅链接中，传入mtu参数来修改mtu值。如果是 clash 配置的，就修改 clash 配置文件的头部 dns 字段的内容。**也可能Endpoint的IP被墙了，导致无法使用。**
+- 5、转为 Hiddify 的 JSON 配置，在 Hiddify 客户端中`点击连接`时，可能出现 Hiddify 程序闪退问题，只要 JSON 的配置没有语法错误，重新打开就能使用，如果想解决闪退问题，可以尝试修改生成的节点数量，可以从外部传入nodeSize参数，限制节点数量(代码里面也有限制 Hiddify 的节点数量的，nodeSize 超出对应的数量，节点数量不会随 nodeSize 增加而增加)。
 
 ### 四、URL参数说明
 
-| 参数         | 含义                                                         | 例子                                                         |
-| ------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| target       | （必须）转换成的目标                                         | target=nekobox 或 nekoray、v2rayn 或 wireguard、clash、hiddify |
-| pwd          | （必须/可选）访问订阅内容的密码，如果您在 cloudflare 中设置了`PASSWORD` 变量值(访问密码)，这个参数是必须的。 | pwd=???，密码等于您在 cloudflare 后台设置的`PASSWORD` 变量值 |
-| nodeSize     | （可选）您需要多少条节点。注意：不能准确控制 Hiddify 的节点数，里面还有一层数量限制（最多70*2=140个、200个） | nodeSize=100，100个节点，默认为300                           |
-| loc/location | （可选）你想要哪个 cidr 段的IP？us => 162开头的IP；gb => 188开头的IP。 | loc=us、loc=gb                                               |
-| detour       | （可选）绕行/迂回代理、链式代理，获取 us/gb 的IP定位，只能搭配 `target=hiddify` 使用。 | target=hiddify&detour=on                                     |
-| mtu          | （可选）修改 WirGuard 节点中的 mtu 的值。                    | mtu=1280，或者 `1280~1500` 之间的数，默认1280                |
-| cidrs        | （可选）使用自定义的 cidr ，不使用内置的 cidrs ，支持多个 cidr ，以逗号隔开、字符串形式传入。注意：只支持 IPv4 CIDR 的传入。 | cidrs=162.159.192.0/24<br>cidrs=162.159.192.0/24,162.159.193.0/24 |
-| ipSize       | （可选）从所有 cidrs 中随机生成多少个不重复的IP，一定程度上可以控制节点生成的数量。 | ipSize=500，生成500个IP地址，默认为1000                      |
-| portSize     | （可选）从 ports 的54个端口中随机生成多少个不重复的 port ，一定程度上可以控制节点生成的数量。 | portSize=5，随机选择54个port的5个，默认为10                  |
+| 参数                | 含义                                                         | 例子                                                         |
+| ------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| target              | （必须）转换成的目标                                         | target=nekobox 或 nekoray、v2rayn 或 wireguard、clash、hiddify |
+| pwd                 | （必须/可选）访问订阅内容的密码，如果您在 cloudflare 中设置了`PASSWORD` 变量值(访问密码)，这个参数是必须的。 | pwd=???，密码等于您在 cloudflare 后台设置的`PASSWORD` 变量值 |
+| nodeSize            | （可选）您需要多少条节点。注意：不能准确控制 Hiddify 的节点数，里面还有一层数量限制（最多70*2=140个、200个） | nodeSize=100，100个节点，默认为300                           |
+| loc/location        | （可选）你想要哪个 cidr 段的IP？us => 162开头的IP；gb => 188开头的IP。 | loc=us、loc=gb                                               |
+| detour              | （可选）绕行/迂回代理、链式代理，获取 us/gb 的IP定位，只能搭配 `target=hiddify` 使用。 | target=hiddify&detour=on                                     |
+| mtu                 | （可选）修改 WirGuard 节点中的 mtu 的值。                    | mtu=1280，或者 `1280~1500` 之间的数，默认1280                |
+| version/cidrversion | （可选）默认选择使用IPv4 CIDRs生成IP地址，也可以选IPv6 CIDRs生成IP地址，注意：version和cidrs参数设置不对，会导致无法生成IP地址。 | version=4，选择IPv4的CIDR<br>version=6，选择IPv6的CIDR       |
+| cidrs               | （可选）使用自定义的 cidr ，不使用内置的 cidrs ，支持多个 cidr ，以逗号隔开、字符串形式传入。注意：cidrs传入的cidrs版本必须与version的版本一致，也就是，传入IPv4的cidrs，version就必须等于4的，传入IPv6的cidrs，version就必须等于6的。 | cidrs=162.159.192.0/24<br>cidrs=162.159.192.0/24,162.159.193.0/24 |
+| ipSize              | （可选）从所有 cidrs 中随机生成多少个不重复的IP，一定程度上可以控制节点生成的数量。 | ipSize=500，生成500个IP地址，默认为1000                      |
+| portSize            | （可选）从 ports 的54个端口中随机生成多少个不重复的 port ，一定程度上可以控制节点生成的数量。 | portSize=5，随机选择54个port的5个，默认为10                  |
 ```
 https://a.abc.workers.dev/sub?target=nekoray
 https://a.abc.workers.dev/sub?target=nekoray&loc=us
@@ -81,10 +81,12 @@ https://a.abc.workers.dev/sub?target=hiddify
 https://a.abc.workers.dev/sub?target=hiddify&detour=on
 https://a.abc.workers.dev/sub?target=hiddify&detour=on&loc=us
 https://a.abc.workers.dev/sub?target=clash&mtu=1280
-ttps://a.abc.workers.dev/sub?target=wireguard&nodeSize=100
-ttps://a.abc.workers.dev/sub?target=wireguard&nodeSize=100&mtu=1280
+https://a.abc.workers.dev/sub?target=wireguard&nodeSize=100
+https://a.abc.workers.dev/sub?target=wireguard&nodeSize=100&mtu=1280
 https://a.abc.workers.dev/sub?target=hiddify&ipSize=200&portSize=5
 https://a.abc.workers.dev/sub?target=hiddify&ipSize=200&portSize=5&cidrs=162.159.192.0/24,162.159.193.0/24
+https://a.abc.workers.dev/sub?target=clash&version=6 # 使用ipv6的cidr生成IP地址
+https://a.abc.workers.dev/sub?target=clash&version=6&cidrs=2606:4700:d0::/48,2606:4700:d1::/48 # 传入ipv6的cidr,并且要指定version=6
 ```
 
 #### 1、target参数(必须)：

@@ -27,9 +27,9 @@ let PrivateKey = "wBUDtqZGfV1gpV7n4GNsGEyR76hAMN1hGaM1yfYcFms=";
 let Address = ["172.16.0.2/32", "2606:4700:110:816b:ef6f:4f25:f7ab:dc09/128"];
 let PublicKey = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=";
 let encoded_PublicKey = encodeURIComponent(PublicKey);
-let MTU = 1280; // 1280
+let MTU = 1280;
 
-let cidrs = ['162.159.192.0/24', '162.159.193.0/24', '162.159.195.0/24', '188.114.96.0/24', '188.114.97.0/24', '188.114.98.0/24', '188.114.99.0/24'];
+let cidrs = ['162.159.192.0/24', '162.159.193.0/24', '162.159.195.0/24', '188.114.96.0/24', '188.114.97.0/24', '188.114.98.0/24', '188.114.99.0/24', '2606:4700:d0::/48', '2606:4700:d1::/48'];
 let ports = [854, 859, 864, 878, 880, 890, 891, 894, 903, 908, 928, 934, 939, 942, 943, 945, 946, 955, 968, 987, 988, 1002, 1010, 1014, 1018, 1070, 1074, 1180, 1387, 1843, 2371, 2506, 3138, 3476, 3581, 3854, 4177, 4198, 4233, 5279, 5956, 7103, 7152, 7156, 7281, 7559, 8319, 8742, 8854, 8886, 2408, 500, 4500, 1701];
 
 // 它们控制生成wireguard/nekoray链接的数量
@@ -41,20 +41,26 @@ let randomNodeSize = 300; // 从前面海选得到的IP和PORT后，将它们组
 const CLASH_TEMPLATE_URL = "https://raw.githubusercontent.com/juerson/wireguard-subconverter-worker/master/clash.yaml";
 const HIDDIFY_TEMPLATE_URL = "https://raw.githubusercontent.com/juerson/wireguard-subconverter-worker/master/hiddify.json";
 
+const ipv4CidrRegex = /^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\/(3[0-2]|[1-2]?[0-9])$/;
+const ipv6CidrRegex = /^((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,7}|:)|fe80:(?::[0-9A-Fa-f]{0,4}){0,4}%[0-9A-Za-z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:[0-9A-Fa-f]{1,4}:){1,4}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,4}:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])){3})\/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$/;
+
+const selectedCIDRVersion = 4; // 默认选择是IPv4 CIDRs。如果值是4，就选择IPv4 CIDRs，如果值是6，则选择IPv6 CIDRs
+
 export default {
 	async fetch(request, env, ctx) {
 		const url = new URL(request.url);
-		// 从请求url中，获取参数的值（target、cidrs、nodeSize、ipSize、portSize、loc/location、detour）
+		// 从请求url中，获取参数的值（target、cidrs、nodeSize、ipSize、portSize、loc/location、detour、version/cidrversion）
 		let target = url.searchParams.get('target') || ""; // 转换为目标客户端或链接类型，v2rayn/wireguard、nekobox/nekoray
 		let pwd = url.searchParams.get('pwd') || ""; // 访问的密码
 		let password = env.PASSWORD || ""; // cloudflare后台设置的密码，跟 pwd 的值对比
 		let cidrsValue = url.searchParams.get('cidrs') || "";
 		let newcidrs = cidrsValue ? cidrsValue.trim().split(',') : cidrs;
-		let nodeSize = url.searchParams.get('nodeSize') || randomNodeSize;
-		let ipSize = url.searchParams.get('ipSize') || randomIpSize;
-		let portSize = url.searchParams.get('portSize') || randomPortSize;
+		let nodeSize = url.searchParams.get('nodeSize') || url.searchParams.get('nodesize') || randomNodeSize;
+		let ipSize = url.searchParams.get('ipSize') || url.searchParams.get('ipsize') || randomIpSize;
+		let portSize = url.searchParams.get('portSize') || url.searchParams.get('portsize') || randomPortSize;
+		let cidrVersion = url.searchParams.get('cidrVersion') || url.searchParams.get('cidrversion') || url.searchParams.get('version') || String(selectedCIDRVersion); // 选择IPv4 CIDR还是IPv6 CIDR，默认选择IPv4 CIDR
 		let detour = url.searchParams.get('detour') || ""; // 链式代理，该参数只支持target=hiddify时使用
-		let location = url.searchParams.get('loc') || url.searchParams.get('location') || ""; // 粗略地选择哪些IP段(162/188开头的IP)
+		let location = url.searchParams.get('loc') || url.searchParams.get('location') || ""; // 粗略地选择哪些IP段(162/188开头的IP)，ipv6的IP段忽略
 		if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
 			newcidrs = cidrs.filter(item => item.startsWith("188")); // 188开头的cidr
 		} else if (location.toLocaleLowerCase() === "us" && cidrsValue.trim() === "") {
@@ -70,18 +76,30 @@ export default {
 
 		// 收集IP:PORT
 		let ips_with_ports = [];
-		// 在newcidrs范围内，生成随机一定数量的IP地址
-		generateRandomIPv4InRange(newcidrs, ipSize).forEach(ip => {
-			// 在ports范围内，选择随机一定数量的PORT端口
-			getRandomElementsFromArray(ports, portSize).forEach(port => {
-				ips_with_ports.push(`${ip}:${port}`);
+		if (cidrVersion == 4) { // 处理是IPv4 CIDR的CIDRs
+			const ipv4CidrArray = newcidrs.filter(item => ipv4CidrRegex.test(item));
+			// 在ipv4CidrArray范围内，生成随机一定数量的IP地址
+			generateRandomIPv4InRange(ipv4CidrArray, ipSize).forEach(ip => {
+				// 在ports范围内，选择随机一定数量的PORT端口
+				getRandomElementsFromArray(ports, portSize).forEach(port => {
+					ips_with_ports.push(`${ip}:${port}`);
+				});
 			});
-		});
+		} else if (cidrVersion == 6) { // 处理是IPv6 CIDR的CIDRs
+			const ipv6CidrArray = newcidrs.filter(item => ipv6CidrRegex.test(item));
+			// 在ipv6CidrArray范围内，生成随机一定数量的IP地址
+			generateRandomIPv6InRange(ipv6CidrArray, ipSize).forEach(ip => {
+				// 在ports范围内，选择随机一定数量的PORT端口
+				getRandomElementsFromArray(ports, portSize).forEach(port => {
+					ips_with_ports.push(`[${ip}]:${port}`);
+				});
+			});
+		}
 
 		switch (url.pathname) {
 			case '/sub':
 				// 密码正确才能访问订阅
-				if (password === pwd) {
+				if (password === pwd && ips_with_ports.length > 0) {
 					let endpoints = getRandomElementsFromArray(ips_with_ports, nodeSize);
 					if (target.toLocaleLowerCase() === "v2rayn" || target.toLocaleLowerCase() === "wireguard") {
 						let wireguardLinks = [];
@@ -200,6 +218,13 @@ export default {
 							}
 						});
 					}
+				} else if (password === pwd && ips_with_ports.length === 0) {
+					return new Response("没有生成任何的IP:PORT地址！检查一下传入的URL参数是否出现冲突，导致无法生成的IP:PORT地址。", {
+						status: 200,
+						headers: {
+							"Content-Type": "text/plain; charset=utf-8",
+						}
+					});
 				}
 				default:
 					return new Response("Not found", {
@@ -213,7 +238,52 @@ export default {
 	},
 };
 
-// 从众多的CIDR范围中，生成随机、不重复的numOfIPs个IP地址
+// 抓取网页的内容
+async function fetchWebPageContent(URL) {
+	try {
+		const response = await fetch(URL);
+		if (!response.ok) {
+			throw new Error(`Failed to get: ${response.status}`);
+			return "";
+		} else {
+			return await response.text();
+		}
+	} catch (err) {
+		console.error(`Failed to fetch ${URL} web conten: ${err.message}`);
+		return "";
+	}
+}
+
+// 随机获取两个不同的 WireGuard 参数
+function getTwoRandomElements(arr) {
+	if (arr.length < 2) {
+		//数组长度小于2，无法选择不同的元素
+		return;
+	}
+	let index1 = Math.floor(Math.random() * arr.length);
+	let index2 = Math.floor(Math.random() * arr.length);
+	// 确保两个索引不相同
+	while (index2 === index1) {
+		index2 = Math.floor(Math.random() * arr.length);
+	}
+	return [arr[index1], arr[index2]];
+}
+
+// 分割IP和端口
+function sliceIPAndPort(ip_with_port) {
+	// 匹配 IPv4 或 [IPv6] 的正则表达式
+	let matches = ip_with_port.match(/^(\[?([^\]]+)\]?)?:([0-9]+)$/);
+	if (matches) {
+		// matches[2] 是 IPv4 或 IPv6 地址部分，matches[3] 是端口部分
+		let ipAddress = matches[2] || null;
+		let port = parseInt(matches[3]);
+		return [ipAddress, port];
+	} else {
+		return [null, null];
+	}
+}
+
+// 从IPv4 CIDRs范围中，生成随机、不重复的numOfIPs个IPv4地址
 function generateRandomIPv4InRange(cidrs, numOfIPs) {
 	// 使用 Set 来存储唯一的 IP 地址
 	let ips = new Set();
@@ -270,6 +340,37 @@ function generateRandomIPv4InRange(cidrs, numOfIPs) {
 	});
 }
 
+// 从IPv6 CIDRs范围内，生成随机、不重复的 count个IPv6地址
+function generateRandomIPv6InRange(ipv6_cidrs, count) {
+	const addresses = new Set();
+	while (addresses.size < count) {
+		// 随机选择一个CIDR
+		const ipv6_cidr = ipv6_cidrs[Math.floor(Math.random() * ipv6_cidrs.length)];
+		const [start, prefixLength] = ipv6_cidr.split('/');
+		const prefixBytes = Math.floor(prefixLength / 16);
+		const prefixBits = prefixLength % 16;
+		const startParts = start.split(':').slice(0, prefixBytes);
+
+		if (prefixBits !== 0) {
+			const prefixPart = parseInt(start.split(':')[prefixBytes], 16);
+			const prefixMax = prefixPart | ((1 << (16 - prefixBits)) - 1);
+			startParts.push(prefixPart + Math.floor(Math.random() * (prefixMax - prefixPart + 1)));
+		}
+
+		const randomParts = startParts.slice();
+		for (let i = randomParts.length; i < 8; i++) {
+			randomParts.push(Math.floor(Math.random() * 0x10000));
+		}
+		let address = randomParts.map(part => part.toString(16).replace(/^0+/, '')).join(':');
+		address = address.replace(/(^|:)0(:0)+/g, '::');
+		if (!addresses.has(address)) {
+			addresses.add(address);
+		}
+	}
+
+	return Array.from(addresses);
+}
+
 // 从数组中随机选择n个的元素
 function getRandomElementsFromArray(arr, n = 10) {
 	// 确保 n 的值在有效范围内
@@ -290,7 +391,7 @@ function getRandomElementsFromArray(arr, n = 10) {
 	return result;
 }
 
-// 生成WireGuard链接
+// 生成 WireGuard 链接
 function buildWireGuardLink(ip_with_port, wireguardParameters, Address, PrivateKey, encoded_PublicKey, MTU = 1280) {
 	// 分割IP和端口
 	let [ip, port] = sliceIPAndPort(ip_with_port);
@@ -309,7 +410,7 @@ function buildWireGuardLink(ip_with_port, wireguardParameters, Address, PrivateK
 		Reserved = randomGroup['reserved'];
 	}
 	// 别名
-	let encoded_remarks = encodeURIComponent(`warp-${ip}`);
+	let encoded_remarks = encodeURIComponent(`warp-${ip_with_port}`);
 	let wireguardLinks;
 	if (Reserved.trim().length === 0) {
 		wireguardLinks = `wireguard://${encoded_PrivateKey}@${ip_with_port}/?publickey=${encoded_PublicKey}&address=${encoded_Address}&mtu=${MTU}#${encoded_remarks}`;
@@ -320,7 +421,7 @@ function buildWireGuardLink(ip_with_port, wireguardParameters, Address, PrivateK
 	return wireguardLinks;
 }
 
-// 生成NekoRay链接
+// 生成 NekoRay 链接
 function buildNekoRayLink(ip_with_port, wireguardParameters, Address, PrivateKey, public_key, mtu = 1280) {
 	// 分割IP和端口
 	let [ip, port] = sliceIPAndPort(ip_with_port);
@@ -339,7 +440,7 @@ function buildNekoRayLink(ip_with_port, wireguardParameters, Address, PrivateKey
 		reserved = randomGroup['reserved'];
 	}
 	// 名称
-	let encoded_remarks = encodeURIComponent(`warp-${ip}`);
+	let encoded_remarks = `warp-${ip_with_port}`;
 	let ipv4 = "172.16.0.2/32";
 	// 保证reserved的值是存在，要么是空字符，要么是由多个数字、以分号隔开，组合的字符串
 	let reservedString = reserved.trim().length > 0 ? reserved.replaceAll(',', ', ') : "";
@@ -377,7 +478,7 @@ function buildNekoRayLink(ip_with_port, wireguardParameters, Address, PrivateKey
 	return nekoray_link;
 }
 
-// 生成Clash节点配置
+// 生成Clash YAML配置
 function buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, PublicKey, mtu = 1280) {
 	let [server, port] = sliceIPAndPort(ip_with_port);
 	if (server === null && port === null) {
@@ -432,104 +533,7 @@ function buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, 
 	return [remarks, `  - ${compressedJsonString}`];
 }
 
-// 分割IP和端口
-function sliceIPAndPort(ip_with_port) {
-	let matches = ip_with_port.match(/^\[?([^\]]+)\]?:([0-9]+)$/);
-	if (matches) {
-		return [matches[1], parseInt(matches[2])]
-	} else {
-		return [null, null];
-	}
-}
-
-async function fetchWebPageContent(URL) {
-	try {
-		const response = await fetch(URL);
-		if (!response.ok) {
-			throw new Error(`Failed to get: ${response.status}`);
-			return "";
-		} else {
-			return await response.text();
-		}
-	} catch (err) {
-		console.error(`Failed to fetch ${URL} web conten: ${err.message}`);
-		return "";
-	}
-}
-
-// 获取两个WireGuard参数
-function getTwoRandomElements(arr) {
-	if (arr.length < 2) {
-		//数组长度小于2，无法选择不同的元素
-		return;
-	}
-	let index1 = Math.floor(Math.random() * arr.length);
-	let index2 = Math.floor(Math.random() * arr.length);
-	// 确保两个索引不相同
-	while (index2 === index1) {
-		index2 = Math.floor(Math.random() * arr.length);
-	}
-	return [arr[index1], arr[index2]];
-}
-
-// 生成Hiddify JSON配置（内部的JSON，不是完整的JSON）---绕行/链式代理
-function buildHiddifyDetourJSON(ip_with_port, wireguardParameters, public_key, mtu = 1280) {
-	let [server, port] = sliceIPAndPort(ip_with_port);
-	if (server === null && port === null) {
-		return ["", "", "", ""]; // IP和PORT无法切割（没有对应的IP和PORT，就返回空数组）
-	}
-	let node_json = {
-		"type": "wireguard",
-		"tag": "",
-		"local_address": ["172.16.0.2/32"],
-		"private_key": "",
-		"server": `${server}`,
-		"server_port": Number(port),
-		"peer_public_key": `${public_key}`,
-		"reserved": "",
-		"mtu": Number(mtu),
-		"fake_packets": "8-15",
-		"fake_packets_size": "40-100",
-		"fake_packets_delay": "20-250"
-	}
-	// 随机选择两个wireguard参数（两个不同的配置参数）
-	let [wireguardParamA, wireguardParamB] = getTwoRandomElements(wireguardParameters);
-	if (wireguardParamA === "" || wireguardParamB === "") {
-		return ["", "", "", ""]; // wiregurad的参数没有，就返回空数组
-	}
-	// 提取wireguard的参数
-	let private_keyA = wireguardParamA["privateKey"];
-	let ipv6A = wireguardParamA["ipv6"];
-	let reservedA = wireguardParamA["reserved"];
-	let private_keyB = wireguardParamB["privateKey"];
-	let ipv6B = wireguardParamB["ipv6"];
-	let reservedB = wireguardParamB["reserved"];
-	// 用于区分节点
-	let flag = server.startsWith("162") ? "🇺🇲" : "🇬🇧";
-
-	// 节点1、2的名称
-	let proxy_name = `warp-${server}:${port}`;
-	let proxy_name_detour = `${proxy_name}-${flag}`; // 含有detour参数的节点名称
-
-	// —————————————————————————————— 选择这个节点，IP定位为自己的真实位置 ——————————————————————————————
-	let deepCopyA = JSON.parse(JSON.stringify(node_json)); //深拷贝，防止在后面修改，这里的数据也修改
-	deepCopyA['tag'] = proxy_name;
-	deepCopyA['local_address'].push(ipv6A);
-	deepCopyA['private_key'] = private_keyA;
-	deepCopyA['reserved'] = reservedA.includes(",") ? reservedA.split(",").map(Number) : [];
-
-	// ———————————— 选择这个节点，使用detour参数明确绕行的节点，绕行/链式代理，IP定位为US/GB位置 ———————————
-	let deepCopyB = JSON.parse(JSON.stringify(node_json)); // 深拷贝
-	deepCopyB['tag'] = proxy_name_detour;
-	deepCopyB['detour'] = proxy_name; // 指向上面那个节点的tag，也就是通过那个节点绕行/链式代理
-	deepCopyB['local_address'].push(ipv6B);
-	deepCopyB['private_key'] = private_keyB;
-	deepCopyB['reserved'] = reservedB.includes(",") ? reservedB.split(",").map(Number) : [];
-	// 节点1的名称、节点2的名称、节点1的信息、节点2的信息
-	return [proxy_name, proxy_name_detour, deepCopyA, deepCopyB];
-}
-
-// 生成Hiddify JSON配置（内部的JSON，不是完整的JSON）---普通代理
+// 生成Hiddify JSON配置 --- 普通代理
 function buildHiddifyJSON(ip_with_port, wireguardParameters, Address, PrivateKey, public_key, mtu = 1280) {
 	let [server, port] = sliceIPAndPort(ip_with_port);
 	if (server === null && port === null) {
@@ -570,4 +574,61 @@ function buildHiddifyJSON(ip_with_port, wireguardParameters, Address, PrivateKey
 	node_json['reserved'] = reserved.includes(",") ? reserved.split(",").map(Number) : [];
 
 	return [proxy_name, node_json];
+}
+
+// 生成Hiddify JSON配置 --- 绕行/链式代理
+function buildHiddifyDetourJSON(ip_with_port, wireguardParameters, public_key, mtu = 1280) {
+	let [server, port] = sliceIPAndPort(ip_with_port);
+	if (server === null && port === null) {
+		return ["", "", "", ""]; // IP和PORT无法切割（没有对应的IP和PORT，就返回空数组）
+	}
+	let node_json = {
+		"type": "wireguard",
+		"tag": "",
+		"local_address": ["172.16.0.2/32"],
+		"private_key": "",
+		"server": `${server}`,
+		"server_port": Number(port),
+		"peer_public_key": `${public_key}`,
+		"reserved": "",
+		"mtu": Number(mtu),
+		"fake_packets": "8-15",
+		"fake_packets_size": "40-100",
+		"fake_packets_delay": "20-250"
+	}
+	// 随机选择两个wireguard参数（两个不同的配置参数）
+	let [wireguardParamA, wireguardParamB] = getTwoRandomElements(wireguardParameters);
+	if (wireguardParamA === "" || wireguardParamB === "") {
+		return ["", "", "", ""]; // wiregurad的参数没有，就返回空数组
+	}
+	// 提取wireguard的参数
+	let private_keyA = wireguardParamA["privateKey"];
+	let ipv6A = wireguardParamA["ipv6"];
+	let reservedA = wireguardParamA["reserved"];
+	let private_keyB = wireguardParamB["privateKey"];
+	let ipv6B = wireguardParamB["ipv6"];
+	let reservedB = wireguardParamB["reserved"];
+	// 用于区分节点
+	let flag = server.startsWith("162") ? "🇺🇲" : "🇬🇧"; // 当server是ipv6地址时，flag可能错误
+
+	// 节点1、2的名称
+	let proxy_name = `warp-${ip_with_port}`;
+	let proxy_name_detour = `${proxy_name}-${flag}`; // 含有detour参数的节点名称
+
+	// —————————————————————————————— 选择这个节点，IP定位为自己的真实位置 ——————————————————————————————
+	let deepCopyA = JSON.parse(JSON.stringify(node_json)); //深拷贝，防止在后面修改，这里的数据也修改
+	deepCopyA['tag'] = proxy_name;
+	deepCopyA['local_address'].push(ipv6A);
+	deepCopyA['private_key'] = private_keyA;
+	deepCopyA['reserved'] = reservedA.includes(",") ? reservedA.split(",").map(Number) : [];
+
+	// ———————————— 选择这个节点，使用detour参数明确绕行的节点，绕行/链式代理，IP定位为US/GB位置 ———————————
+	let deepCopyB = JSON.parse(JSON.stringify(node_json)); // 深拷贝
+	deepCopyB['tag'] = proxy_name_detour;
+	deepCopyB['detour'] = proxy_name; // 指向上面那个节点的tag，也就是通过那个节点绕行/链式代理
+	deepCopyB['local_address'].push(ipv6B);
+	deepCopyB['private_key'] = private_keyB;
+	deepCopyB['reserved'] = reservedB.includes(",") ? reservedB.split(",").map(Number) : [];
+	// 节点1的名称、节点2的名称、节点1的信息、节点2的信息
+	return [proxy_name, proxy_name_detour, deepCopyA, deepCopyB];
 }

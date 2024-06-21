@@ -70,7 +70,7 @@ https://a.abc.workers.dev/sub?target=clash
 | detour              | （可选）绕行/迂回代理、链式代理，获取 us/gb 的IP定位，只能搭配 `target=hiddify` 使用。 | target=hiddify&detour=on                                     |
 | mtu                 | （可选）修改 WirGuard 节点中的 mtu 的值。                    | mtu=1280，或者 `1280~1500` 之间的数，默认1280                |
 | version/cidrversion | （可选）默认选择使用IPv4 CIDRs生成IP地址，也可以选IPv6 CIDRs生成IP地址，注意：version和cidrs参数设置不对，会导致无法生成IP地址。 | version=4，选择IPv4的CIDR<br>version=6，选择IPv6的CIDR       |
-| cidrs               | （可选）使用自定义的 cidr ，不使用内置的 cidrs ，支持多个 cidr ，以逗号隔开、字符串形式传入。注意：cidrs传入的cidrs版本必须与version的版本一致，也就是，传入IPv4的cidrs，version就必须等于4的，传入IPv6的cidrs，version就必须等于6的。 | cidrs=162.159.192.0/24<br>cidrs=162.159.192.0/24,162.159.193.0/24 |
+| cidrs               | （可选）使用自定义的 cidr ，不使用内置的 cidrs ，支持多个 cidr ，以逗号隔开、字符串形式传入。注意：cidrs传入的cidrs版本必须与version的版本一致，也就是，传入IPv4的cidrs，version就必须等于4的，传入IPv6的cidrs，version就必须等于6的。 | cidrs=162.159.192.0/24<br>cidrs=162.159.192.0/24,162.159.193.0/24<br>cidrs=2606:4700:d0::/48&version=6 |
 | ipSize              | （可选）从所有 cidrs 中随机生成多少个不重复的IP，一定程度上可以控制节点生成的数量。 | ipSize=500，生成500个IP地址，默认为1000                      |
 | portSize            | （可选）从 ports 的54个端口中随机生成多少个不重复的 port ，一定程度上可以控制节点生成的数量。 | portSize=5，随机选择54个port的5个，默认为10                  |
 ```

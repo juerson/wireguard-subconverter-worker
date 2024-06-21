@@ -27,13 +27,16 @@ var Address = ["172.16.0.2/32", "2606:4700:110:816b:ef6f:4f25:f7ab:dc09/128"];
 var PublicKey = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=";
 var encoded_PublicKey = encodeURIComponent(PublicKey);
 var MTU = 1280;
-var cidrs = ["162.159.192.0/24", "162.159.193.0/24", "162.159.195.0/24", "188.114.96.0/24", "188.114.97.0/24", "188.114.98.0/24", "188.114.99.0/24"];
+var cidrs = ["162.159.192.0/24", "162.159.193.0/24", "162.159.195.0/24", "188.114.96.0/24", "188.114.97.0/24", "188.114.98.0/24", "188.114.99.0/24", "2606:4700:d0::/48", "2606:4700:d1::/48"];
 var ports = [854, 859, 864, 878, 880, 890, 891, 894, 903, 908, 928, 934, 939, 942, 943, 945, 946, 955, 968, 987, 988, 1002, 1010, 1014, 1018, 1070, 1074, 1180, 1387, 1843, 2371, 2506, 3138, 3476, 3581, 3854, 4177, 4198, 4233, 5279, 5956, 7103, 7152, 7156, 7281, 7559, 8319, 8742, 8854, 8886, 2408, 500, 4500, 1701];
 var randomIpSize = 1e3;
 var randomPortSize = 10;
 var randomNodeSize = 300;
 var CLASH_TEMPLATE_URL = "https://raw.githubusercontent.com/juerson/wireguard-subconverter-worker/master/clash.yaml";
 var HIDDIFY_TEMPLATE_URL = "https://raw.githubusercontent.com/juerson/wireguard-subconverter-worker/master/hiddify.json";
+var ipv4CidrRegex = /^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\/(3[0-2]|[1-2]?[0-9])$/;
+var ipv6CidrRegex = /^((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,7}|:)|fe80:(?::[0-9A-Fa-f]{0,4}){0,4}%[0-9A-Za-z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:[0-9A-Fa-f]{1,4}:){1,4}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,4}:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])){3})\/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$/;
+var selectedCIDRVersion = 4;
 var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -42,9 +45,10 @@ var worker_default = {
     let password = env.PASSWORD || "";
     let cidrsValue = url.searchParams.get("cidrs") || "";
     let newcidrs = cidrsValue ? cidrsValue.trim().split(",") : cidrs;
-    let nodeSize = url.searchParams.get("nodeSize") || randomNodeSize;
-    let ipSize = url.searchParams.get("ipSize") || randomIpSize;
-    let portSize = url.searchParams.get("portSize") || randomPortSize;
+    let nodeSize = url.searchParams.get("nodeSize") || url.searchParams.get("nodesize") || randomNodeSize;
+    let ipSize = url.searchParams.get("ipSize") || url.searchParams.get("ipsize") || randomIpSize;
+    let portSize = url.searchParams.get("portSize") || url.searchParams.get("portsize") || randomPortSize;
+    let cidrVersion = url.searchParams.get("cidrVersion") || url.searchParams.get("cidrversion") || url.searchParams.get("version") || String(selectedCIDRVersion);
     let detour = url.searchParams.get("detour") || "";
     let location = url.searchParams.get("loc") || url.searchParams.get("location") || "";
     if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
@@ -58,14 +62,24 @@ var worker_default = {
       pwd = encodeURIComponent(pwd);
     }
     let ips_with_ports = [];
-    generateRandomIPv4InRange(newcidrs, ipSize).forEach((ip) => {
-      getRandomElementsFromArray(ports, portSize).forEach((port) => {
-        ips_with_ports.push(`${ip}:${port}`);
+    if (cidrVersion == 4) {
+      const ipv4CidrArray = newcidrs.filter((item) => ipv4CidrRegex.test(item));
+      generateRandomIPv4InRange(ipv4CidrArray, ipSize).forEach((ip) => {
+        getRandomElementsFromArray(ports, portSize).forEach((port) => {
+          ips_with_ports.push(`${ip}:${port}`);
+        });
       });
-    });
+    } else if (cidrVersion == 6) {
+      const ipv6CidrArray = newcidrs.filter((item) => ipv6CidrRegex.test(item));
+      generateRandomIPv6InRange(ipv6CidrArray, ipSize).forEach((ip) => {
+        getRandomElementsFromArray(ports, portSize).forEach((port) => {
+          ips_with_ports.push(`[${ip}]:${port}`);
+        });
+      });
+    }
     switch (url.pathname) {
       case "/sub":
-        if (password === pwd) {
+        if (password === pwd && ips_with_ports.length > 0) {
           let endpoints = getRandomElementsFromArray(ips_with_ports, nodeSize);
           if (target.toLocaleLowerCase() === "v2rayn" || target.toLocaleLowerCase() === "wireguard") {
             let wireguardLinks = [];
@@ -168,6 +182,13 @@ var worker_default = {
               }
             });
           }
+        } else if (password === pwd && ips_with_ports.length === 0) {
+          return new Response("\u6CA1\u6709\u751F\u6210\u4EFB\u4F55\u7684IP:PORT\u5730\u5740\uFF01\u68C0\u67E5\u4E00\u4E0B\u4F20\u5165\u7684URL\u53C2\u6570\u662F\u5426\u51FA\u73B0\u51B2\u7A81\uFF0C\u5BFC\u81F4\u65E0\u6CD5\u751F\u6210\u7684IP:PORT\u5730\u5740\u3002", {
+            status: 200,
+            headers: {
+              "Content-Type": "text/plain; charset=utf-8"
+            }
+          });
         }
       default:
         return new Response("Not found", {
@@ -179,6 +200,41 @@ var worker_default = {
     }
   }
 };
+async function fetchWebPageContent(URL2) {
+  try {
+    const response = await fetch(URL2);
+    if (!response.ok) {
+      throw new Error(`Failed to get: ${response.status}`);
+      return "";
+    } else {
+      return await response.text();
+    }
+  } catch (err) {
+    console.error(`Failed to fetch ${URL2} web conten: ${err.message}`);
+    return "";
+  }
+}
+function getTwoRandomElements(arr) {
+  if (arr.length < 2) {
+    return;
+  }
+  let index1 = Math.floor(Math.random() * arr.length);
+  let index2 = Math.floor(Math.random() * arr.length);
+  while (index2 === index1) {
+    index2 = Math.floor(Math.random() * arr.length);
+  }
+  return [arr[index1], arr[index2]];
+}
+function sliceIPAndPort(ip_with_port) {
+  let matches = ip_with_port.match(/^(\[?([^\]]+)\]?)?:([0-9]+)$/);
+  if (matches) {
+    let ipAddress = matches[2] || null;
+    let port = parseInt(matches[3]);
+    return [ipAddress, port];
+  } else {
+    return [null, null];
+  }
+}
 function generateRandomIPv4InRange(cidrs2, numOfIPs) {
   let ips = /* @__PURE__ */ new Set();
   let totalIPs = cidrs2.reduce(function(acc, cidr) {
@@ -228,6 +284,31 @@ function generateRandomIPv4InRange(cidrs2, numOfIPs) {
     ].join(".");
   });
 }
+function generateRandomIPv6InRange(ipv6_cidrs, count) {
+  const addresses = /* @__PURE__ */ new Set();
+  while (addresses.size < count) {
+    const ipv6_cidr = ipv6_cidrs[Math.floor(Math.random() * ipv6_cidrs.length)];
+    const [start, prefixLength] = ipv6_cidr.split("/");
+    const prefixBytes = Math.floor(prefixLength / 16);
+    const prefixBits = prefixLength % 16;
+    const startParts = start.split(":").slice(0, prefixBytes);
+    if (prefixBits !== 0) {
+      const prefixPart = parseInt(start.split(":")[prefixBytes], 16);
+      const prefixMax = prefixPart | (1 << 16 - prefixBits) - 1;
+      startParts.push(prefixPart + Math.floor(Math.random() * (prefixMax - prefixPart + 1)));
+    }
+    const randomParts = startParts.slice();
+    for (let i = randomParts.length; i < 8; i++) {
+      randomParts.push(Math.floor(Math.random() * 65536));
+    }
+    let address = randomParts.map((part) => part.toString(16).replace(/^0+/, "")).join(":");
+    address = address.replace(/(^|:)0(:0)+/g, "::");
+    if (!addresses.has(address)) {
+      addresses.add(address);
+    }
+  }
+  return Array.from(addresses);
+}
 function getRandomElementsFromArray(arr, n = 10) {
   if (n < 1 || n > arr.length) {
     n = 10;
@@ -259,7 +340,7 @@ function buildWireGuardLink(ip_with_port, wireguardParameters2, Address2, Privat
     encoded_Address = encodeURIComponent(["172.16.0.2/32", randomGroup["ipv6"]].join(","));
     Reserved = randomGroup["reserved"];
   }
-  let encoded_remarks = encodeURIComponent(`warp-${ip}`);
+  let encoded_remarks = encodeURIComponent(`warp-${ip_with_port}`);
   let wireguardLinks;
   if (Reserved.trim().length === 0) {
     wireguardLinks = `wireguard://${encoded_PrivateKey}@${ip_with_port}/?publickey=${encoded_PublicKey2}&address=${encoded_Address}&mtu=${MTU2}#${encoded_remarks}`;
@@ -284,7 +365,7 @@ function buildNekoRayLink(ip_with_port, wireguardParameters2, Address2, PrivateK
     ipv6 = randomGroup["ipv6"];
     reserved = randomGroup["reserved"];
   }
-  let encoded_remarks = encodeURIComponent(`warp-${ip}`);
+  let encoded_remarks = `warp-${ip_with_port}`;
   let ipv4 = "172.16.0.2/32";
   let reservedString = reserved.trim().length > 0 ? reserved.replaceAll(",", ", ") : "";
   let cs_data = `{
@@ -370,84 +451,6 @@ function buildClashNode(ip_with_port, wireguardParameters2, Address2, PrivateKey
   let compressedJsonString = JSON.stringify(wireguard).replace(/\s+/g, "");
   return [remarks, `  - ${compressedJsonString}`];
 }
-function sliceIPAndPort(ip_with_port) {
-  let matches = ip_with_port.match(/^\[?([^\]]+)\]?:([0-9]+)$/);
-  if (matches) {
-    return [matches[1], parseInt(matches[2])];
-  } else {
-    return [null, null];
-  }
-}
-async function fetchWebPageContent(URL2) {
-  try {
-    const response = await fetch(URL2);
-    if (!response.ok) {
-      throw new Error(`Failed to get: ${response.status}`);
-      return "";
-    } else {
-      return await response.text();
-    }
-  } catch (err) {
-    console.error(`Failed to fetch ${URL2} web conten: ${err.message}`);
-    return "";
-  }
-}
-function getTwoRandomElements(arr) {
-  if (arr.length < 2) {
-    return;
-  }
-  let index1 = Math.floor(Math.random() * arr.length);
-  let index2 = Math.floor(Math.random() * arr.length);
-  while (index2 === index1) {
-    index2 = Math.floor(Math.random() * arr.length);
-  }
-  return [arr[index1], arr[index2]];
-}
-function buildHiddifyDetourJSON(ip_with_port, wireguardParameters2, public_key, mtu = 1280) {
-  let [server, port] = sliceIPAndPort(ip_with_port);
-  if (server === null && port === null) {
-    return ["", "", "", ""];
-  }
-  let node_json = {
-    "type": "wireguard",
-    "tag": "",
-    "local_address": ["172.16.0.2/32"],
-    "private_key": "",
-    "server": `${server}`,
-    "server_port": Number(port),
-    "peer_public_key": `${public_key}`,
-    "reserved": "",
-    "mtu": Number(mtu),
-    "fake_packets": "8-15",
-    "fake_packets_size": "40-100",
-    "fake_packets_delay": "20-250"
-  };
-  let [wireguardParamA, wireguardParamB] = getTwoRandomElements(wireguardParameters2);
-  if (wireguardParamA === "" || wireguardParamB === "") {
-    return ["", "", "", ""];
-  }
-  let private_keyA = wireguardParamA["privateKey"];
-  let ipv6A = wireguardParamA["ipv6"];
-  let reservedA = wireguardParamA["reserved"];
-  let private_keyB = wireguardParamB["privateKey"];
-  let ipv6B = wireguardParamB["ipv6"];
-  let reservedB = wireguardParamB["reserved"];
-  let flag = server.startsWith("162") ? "\u{1F1FA}\u{1F1F2}" : "\u{1F1EC}\u{1F1E7}";
-  let proxy_name = `warp-${server}:${port}`;
-  let proxy_name_detour = `${proxy_name}-${flag}`;
-  let deepCopyA = JSON.parse(JSON.stringify(node_json));
-  deepCopyA["tag"] = proxy_name;
-  deepCopyA["local_address"].push(ipv6A);
-  deepCopyA["private_key"] = private_keyA;
-  deepCopyA["reserved"] = reservedA.includes(",") ? reservedA.split(",").map(Number) : [];
-  let deepCopyB = JSON.parse(JSON.stringify(node_json));
-  deepCopyB["tag"] = proxy_name_detour;
-  deepCopyB["detour"] = proxy_name;
-  deepCopyB["local_address"].push(ipv6B);
-  deepCopyB["private_key"] = private_keyB;
-  deepCopyB["reserved"] = reservedB.includes(",") ? reservedB.split(",").map(Number) : [];
-  return [proxy_name, proxy_name_detour, deepCopyA, deepCopyB];
-}
 function buildHiddifyJSON(ip_with_port, wireguardParameters2, Address2, PrivateKey2, public_key, mtu = 1280) {
   let [server, port] = sliceIPAndPort(ip_with_port);
   if (server === null && port === null) {
@@ -484,6 +487,51 @@ function buildHiddifyJSON(ip_with_port, wireguardParameters2, Address2, PrivateK
   node_json["private_key"] = private_key;
   node_json["reserved"] = reserved.includes(",") ? reserved.split(",").map(Number) : [];
   return [proxy_name, node_json];
+}
+function buildHiddifyDetourJSON(ip_with_port, wireguardParameters2, public_key, mtu = 1280) {
+  let [server, port] = sliceIPAndPort(ip_with_port);
+  if (server === null && port === null) {
+    return ["", "", "", ""];
+  }
+  let node_json = {
+    "type": "wireguard",
+    "tag": "",
+    "local_address": ["172.16.0.2/32"],
+    "private_key": "",
+    "server": `${server}`,
+    "server_port": Number(port),
+    "peer_public_key": `${public_key}`,
+    "reserved": "",
+    "mtu": Number(mtu),
+    "fake_packets": "8-15",
+    "fake_packets_size": "40-100",
+    "fake_packets_delay": "20-250"
+  };
+  let [wireguardParamA, wireguardParamB] = getTwoRandomElements(wireguardParameters2);
+  if (wireguardParamA === "" || wireguardParamB === "") {
+    return ["", "", "", ""];
+  }
+  let private_keyA = wireguardParamA["privateKey"];
+  let ipv6A = wireguardParamA["ipv6"];
+  let reservedA = wireguardParamA["reserved"];
+  let private_keyB = wireguardParamB["privateKey"];
+  let ipv6B = wireguardParamB["ipv6"];
+  let reservedB = wireguardParamB["reserved"];
+  let flag = server.startsWith("162") ? "\u{1F1FA}\u{1F1F2}" : "\u{1F1EC}\u{1F1E7}";
+  let proxy_name = `warp-${ip_with_port}`;
+  let proxy_name_detour = `${proxy_name}-${flag}`;
+  let deepCopyA = JSON.parse(JSON.stringify(node_json));
+  deepCopyA["tag"] = proxy_name;
+  deepCopyA["local_address"].push(ipv6A);
+  deepCopyA["private_key"] = private_keyA;
+  deepCopyA["reserved"] = reservedA.includes(",") ? reservedA.split(",").map(Number) : [];
+  let deepCopyB = JSON.parse(JSON.stringify(node_json));
+  deepCopyB["tag"] = proxy_name_detour;
+  deepCopyB["detour"] = proxy_name;
+  deepCopyB["local_address"].push(ipv6B);
+  deepCopyB["private_key"] = private_keyB;
+  deepCopyB["reserved"] = reservedB.includes(",") ? reservedB.split(",").map(Number) : [];
+  return [proxy_name, proxy_name_detour, deepCopyA, deepCopyB];
 }
 export {
   worker_default as default

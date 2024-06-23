@@ -373,7 +373,7 @@ function generateRandomIPv6InRange(cidrs, count) {
 		}
 		// 连接成地址字符串
 		let address = randomParts.join(':');
-		// 压缩连续的零段
+		// 压缩零段
 		address = address.replace(/(^|:)(0:)+/g, '::');
 		if (!addresses.has(address)) {
 			addresses.add(address);

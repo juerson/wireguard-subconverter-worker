@@ -284,25 +284,33 @@ function generateRandomIPv4InRange(cidrs2, numOfIPs) {
     ].join(".");
   });
 }
-function generateRandomIPv6InRange(ipv6_cidrs, count) {
+function generateRandomIPv6InRange(cidrs2, count) {
   const addresses = /* @__PURE__ */ new Set();
   while (addresses.size < count) {
-    const ipv6_cidr = ipv6_cidrs[Math.floor(Math.random() * ipv6_cidrs.length)];
-    const [start, prefixLength] = ipv6_cidr.split("/");
-    const prefixBytes = Math.floor(prefixLength / 16);
+    const cidr = cidrs2[Math.floor(Math.random() * cidrs2.length)];
+    const [start, prefixLength] = cidr.split("/");
+    const prefixGroups = Math.floor(prefixLength / 16);
     const prefixBits = prefixLength % 16;
-    const startParts = start.split(":").slice(0, prefixBytes);
-    if (prefixBits !== 0) {
-      const prefixPart = parseInt(start.split(":")[prefixBytes], 16);
+    const startParts = start.split(":").slice(0, prefixGroups);
+    if (prefixBits !== 0 && prefixGroups < 8) {
+      const prefixPart = parseInt(start.split(":")[prefixGroups], 16);
       const prefixMax = prefixPart | (1 << 16 - prefixBits) - 1;
-      startParts.push(prefixPart + Math.floor(Math.random() * (prefixMax - prefixPart + 1)));
+      startParts.push((prefixPart + Math.floor(Math.random() * (prefixMax - prefixPart + 1))).toString(16));
+    }
+    while (startParts.length < 8) {
+      startParts.push("0");
     }
     const randomParts = startParts.slice();
-    for (let i = randomParts.length; i < 8; i++) {
-      randomParts.push(Math.floor(Math.random() * 65536));
+    const remainingGroups = 8 - prefixGroups;
+    let randomGroups = Math.min(remainingGroups, 4);
+    if (remainingGroups <= 4) {
+      randomGroups = remainingGroups;
     }
-    let address = randomParts.map((part) => part.toString(16).replace(/^0+/, "")).join(":");
-    address = address.replace(/(^|:)0(:0)+/g, "::");
+    for (let i = 8 - randomGroups; i < 8; i++) {
+      randomParts[i] = Math.floor(Math.random() * 65536).toString(16);
+    }
+    let address = randomParts.join(":");
+    address = address.replace(/(^|:)(0:)+/g, "::");
     if (!addresses.has(address)) {
       addresses.add(address);
     }

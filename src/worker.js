@@ -1,26 +1,26 @@
 // 这里是普通账号，使用时，建议更换成自己的plus账号
 let wireguardParameters = [
-  { 'privateKey': 'AKs7CKzbDVmfjSgCB4A1JNI5YBMclHYV2OQ7srIijW4=', 'ipv6': '2606:4700:110:876d:4d3c:4206:c90c:6bd0/128', 'reserved': "" },
-  { 'privateKey': 'ILJiqBa4QguF5YHRiB9Xfq2Ll01qbYe4dUKZLdgNTFs=', 'ipv6': '2606:4700:110:8e7b:3658:cd12:5c4f:d86e/128', 'reserved': "" },
-  { 'privateKey': 'aJ2wqfkki3um7JnNAH2R6/OnAo2Td+pmxbRReh1v9GE=', 'ipv6': '2606:4700:110:8310:d937:2fb:c312:9498/128', 'reserved': "162,104,222" },
-  { 'privateKey': '0EefAfoz3eY1PUwycUO5/Ux0GKnjOq6TJk5NySdOglk=', 'ipv6': '2606:4700:110:8b5b:874a:4dbe:b6d2:d333/128', 'reserved': "185,208,24" },
-  { 'privateKey': 'gNPBZNJg1mOGJjoTTof9luaQHdZP2oMRU8nXd3xjpX8=', 'ipv6': '2606:4700:110:83b7:3a13:7ef3:96fc:f055/128', 'reserved': "244,132,74" },
-  { 'privateKey': 'sIVbx/54EJOM0caRr/kksFAkdni+V9VZawSZaha0tms=', 'ipv6': '2606:4700:110:8502:e803:c14e:2858:c0e7/128', 'reserved': "61,142,253" },
-  { 'privateKey': '+Cgu25E1zo9PkW5fC299zgbGVGKJamWgF6/iqQdoUW0=', 'ipv6': '2606:4700:110:805e:1441:a533:975b:8a39/128', 'reserved': "153,183,146" },
-  { 'privateKey': 'GKaNRx+KVRL3F1sguZHO8wh70yUprNsPjmUapCGUsGk=', 'ipv6': '2606:4700:110:88f9:54b8:120e:d01d:c77e/128', 'reserved': "121,102,72" },
-  { 'privateKey': 'qEqlXOEDcFt803y8Gs/fo8DuZJpZpWV/FSh1oKReFXI=', 'ipv6': '2606:4700:110:890f:f926:98fe:7e61:d0e7/128', 'reserved': "18,15,251" },
-  { 'privateKey': '+HfkMSyh7obEkX4J8Qa7Xk77CLVn45AW4CdBbnFNaGc=', 'ipv6': '2606:4700:110:83e8:84f7:8c64:70b4:6709/128', 'reserved': "92,242,140" },
-  { 'privateKey': 'cA8htoCSuLJbax8I6HewsDTwTbuWt5DjEItcGvLGREw=', 'ipv6': '2606:4700:110:8c0b:359c:ee61:a221:d261/128', 'reserved': "50,15,234" },
-  { 'privateKey': 'iLHohl4txwAsgUPW1lGsnAeJDFvit6LAdMYTwbNRGUM=', 'ipv6': '2606:4700:110:81a6:2bc6:e542:7f3e:57f1/128', 'reserved': "6,26,27" },
-  { 'privateKey': 'eMkBv99f6rbTboaKNV4HJhvu/Dn35mub7BrY8xFrCVo=', 'ipv6': '2606:4700:110:8980:cd13:9729:f969:9aab/128', 'reserved': "137,173,229" },
-  { 'privateKey': '8NquX1vPe6AHY5qXmShDELMtx4was2awcNqKj2MgRGM=', 'ipv6': '2606:4700:110:82e8:22b6:a7ee:b89c:a5a2/128', 'reserved': "236,186,157" },
-  { 'privateKey': 'kK/MhN/pbNI05H77pgSsNN6OqM+jPba3Lz9A5Jlg8lw=', 'ipv6': '2606:4700:110:8847:e19b:4828:fe35:d337/128', 'reserved': "139,171,35" },
-  { 'privateKey': '6L1n+NV62WEr2o4/pEUopsgB6RzcY86BLIgYwdOTxmc=', 'ipv6': '2606:4700:110:833b:f16c:a4f3:cf60:8fa3/128', 'reserved': "141,213,198" },
-  { 'privateKey': 'sALjsE4FBGPC/GosnaOhFy/+2cog7roA3jN8yC75F3g=', 'ipv6': '2606:4700:110:8d06:7ef8:cf45:2393:9ac7/128', 'reserved': "66,144,87" },
-  { 'privateKey': 'iEpioH7klluHVhhhDsz0JodBtjqECXMT7J0LLqHmsEs=', 'ipv6': '2606:4700:110:871a:f575:a463:76a0:1984/128', 'reserved': "65,170,17" },
-  { 'privateKey': 'IIBhFRq9qkF0nxPXHzzvATyRVcEePvPU5bJOuoC2S0g=', 'ipv6': '2606:4700:110:8ea1:c997:fbfe:f888:3946/128', 'reserved': "18,140,54" },
-  { 'privateKey': 'gO/NAt7kT3zNWk6OiQ5Ru9A2ksAr96sPxxr68B8TtH0=', 'ipv6': '2606:4700:110:8775:bf6c:a489:d6db:fd76/128', 'reserved': "42,76,32" },
-  { 'privateKey': 'iBtKwA/VDkj1n8uFD0v+E3bIQHMPWsRagclDwr6lUVI=', 'ipv6': '2606:4700:110:8dcd:e0e6:7c9a:c35e:2ece/128', 'reserved': "206,39,0" },
+	{ 'privateKey': 'AKs7CKzbDVmfjSgCB4A1JNI5YBMclHYV2OQ7srIijW4=', 'ipv6': '2606:4700:110:876d:4d3c:4206:c90c:6bd0/128', 'reserved': "" },
+	{ 'privateKey': 'ILJiqBa4QguF5YHRiB9Xfq2Ll01qbYe4dUKZLdgNTFs=', 'ipv6': '2606:4700:110:8e7b:3658:cd12:5c4f:d86e/128', 'reserved': "" },
+	{ 'privateKey': 'aJ2wqfkki3um7JnNAH2R6/OnAo2Td+pmxbRReh1v9GE=', 'ipv6': '2606:4700:110:8310:d937:2fb:c312:9498/128', 'reserved': "162,104,222" },
+	{ 'privateKey': '0EefAfoz3eY1PUwycUO5/Ux0GKnjOq6TJk5NySdOglk=', 'ipv6': '2606:4700:110:8b5b:874a:4dbe:b6d2:d333/128', 'reserved': "185,208,24" },
+	{ 'privateKey': 'gNPBZNJg1mOGJjoTTof9luaQHdZP2oMRU8nXd3xjpX8=', 'ipv6': '2606:4700:110:83b7:3a13:7ef3:96fc:f055/128', 'reserved': "244,132,74" },
+	{ 'privateKey': 'sIVbx/54EJOM0caRr/kksFAkdni+V9VZawSZaha0tms=', 'ipv6': '2606:4700:110:8502:e803:c14e:2858:c0e7/128', 'reserved': "61,142,253" },
+	{ 'privateKey': '+Cgu25E1zo9PkW5fC299zgbGVGKJamWgF6/iqQdoUW0=', 'ipv6': '2606:4700:110:805e:1441:a533:975b:8a39/128', 'reserved': "153,183,146" },
+	{ 'privateKey': 'GKaNRx+KVRL3F1sguZHO8wh70yUprNsPjmUapCGUsGk=', 'ipv6': '2606:4700:110:88f9:54b8:120e:d01d:c77e/128', 'reserved': "121,102,72" },
+	{ 'privateKey': 'qEqlXOEDcFt803y8Gs/fo8DuZJpZpWV/FSh1oKReFXI=', 'ipv6': '2606:4700:110:890f:f926:98fe:7e61:d0e7/128', 'reserved': "18,15,251" },
+	{ 'privateKey': '+HfkMSyh7obEkX4J8Qa7Xk77CLVn45AW4CdBbnFNaGc=', 'ipv6': '2606:4700:110:83e8:84f7:8c64:70b4:6709/128', 'reserved': "92,242,140" },
+	{ 'privateKey': 'cA8htoCSuLJbax8I6HewsDTwTbuWt5DjEItcGvLGREw=', 'ipv6': '2606:4700:110:8c0b:359c:ee61:a221:d261/128', 'reserved': "50,15,234" },
+	{ 'privateKey': 'iLHohl4txwAsgUPW1lGsnAeJDFvit6LAdMYTwbNRGUM=', 'ipv6': '2606:4700:110:81a6:2bc6:e542:7f3e:57f1/128', 'reserved': "6,26,27" },
+	{ 'privateKey': 'eMkBv99f6rbTboaKNV4HJhvu/Dn35mub7BrY8xFrCVo=', 'ipv6': '2606:4700:110:8980:cd13:9729:f969:9aab/128', 'reserved': "137,173,229" },
+	{ 'privateKey': '8NquX1vPe6AHY5qXmShDELMtx4was2awcNqKj2MgRGM=', 'ipv6': '2606:4700:110:82e8:22b6:a7ee:b89c:a5a2/128', 'reserved': "236,186,157" },
+	{ 'privateKey': 'kK/MhN/pbNI05H77pgSsNN6OqM+jPba3Lz9A5Jlg8lw=', 'ipv6': '2606:4700:110:8847:e19b:4828:fe35:d337/128', 'reserved': "139,171,35" },
+	{ 'privateKey': '6L1n+NV62WEr2o4/pEUopsgB6RzcY86BLIgYwdOTxmc=', 'ipv6': '2606:4700:110:833b:f16c:a4f3:cf60:8fa3/128', 'reserved': "141,213,198" },
+	{ 'privateKey': 'sALjsE4FBGPC/GosnaOhFy/+2cog7roA3jN8yC75F3g=', 'ipv6': '2606:4700:110:8d06:7ef8:cf45:2393:9ac7/128', 'reserved': "66,144,87" },
+	{ 'privateKey': 'iEpioH7klluHVhhhDsz0JodBtjqECXMT7J0LLqHmsEs=', 'ipv6': '2606:4700:110:871a:f575:a463:76a0:1984/128', 'reserved': "65,170,17" },
+	{ 'privateKey': 'IIBhFRq9qkF0nxPXHzzvATyRVcEePvPU5bJOuoC2S0g=', 'ipv6': '2606:4700:110:8ea1:c997:fbfe:f888:3946/128', 'reserved': "18,140,54" },
+	{ 'privateKey': 'gO/NAt7kT3zNWk6OiQ5Ru9A2ksAr96sPxxr68B8TtH0=', 'ipv6': '2606:4700:110:8775:bf6c:a489:d6db:fd76/128', 'reserved': "42,76,32" },
+	{ 'privateKey': 'iBtKwA/VDkj1n8uFD0v+E3bIQHMPWsRagclDwr6lUVI=', 'ipv6': '2606:4700:110:8dcd:e0e6:7c9a:c35e:2ece/128', 'reserved': "206,39,0" },
 ];
 // 它们也是wireguard的参数（当wireguardParameters的数据不存在时，才会使用它）
 let PrivateKey = "wBUDtqZGfV1gpV7n4GNsGEyR76hAMN1hGaM1yfYcFms=";
@@ -226,13 +226,13 @@ export default {
 						}
 					});
 				}
-				default:
-					return new Response("Not found", {
-						status: 404,
-						headers: {
-							"Content-Type": "text/plain; charset=utf-8",
-						}
-					});
+			default:
+				return new Response("Not found", {
+					status: 404,
+					headers: {
+						"Content-Type": "text/plain; charset=utf-8",
+					}
+				});
 		}
 
 	},
@@ -341,33 +341,44 @@ function generateRandomIPv4InRange(cidrs, numOfIPs) {
 }
 
 // 从IPv6 CIDRs范围内，生成随机、不重复的 count个IPv6地址
-function generateRandomIPv6InRange(ipv6_cidrs, count) {
+function generateRandomIPv6InRange(cidrs, count) {
 	const addresses = new Set();
 	while (addresses.size < count) {
 		// 随机选择一个CIDR
-		const ipv6_cidr = ipv6_cidrs[Math.floor(Math.random() * ipv6_cidrs.length)];
-		const [start, prefixLength] = ipv6_cidr.split('/');
-		const prefixBytes = Math.floor(prefixLength / 16);
+		const cidr = cidrs[Math.floor(Math.random() * cidrs.length)];
+		const [start, prefixLength] = cidr.split('/');
+		const prefixGroups = Math.floor(prefixLength / 16);
 		const prefixBits = prefixLength % 16;
-		const startParts = start.split(':').slice(0, prefixBytes);
-
-		if (prefixBits !== 0) {
-			const prefixPart = parseInt(start.split(':')[prefixBytes], 16);
+		const startParts = start.split(':').slice(0, prefixGroups);
+		if (prefixBits !== 0 && prefixGroups < 8) {
+			const prefixPart = parseInt(start.split(':')[prefixGroups], 16);
 			const prefixMax = prefixPart | ((1 << (16 - prefixBits)) - 1);
-			startParts.push(prefixPart + Math.floor(Math.random() * (prefixMax - prefixPart + 1)));
+			startParts.push((prefixPart + Math.floor(Math.random() * (prefixMax - prefixPart + 1))).toString(16));
 		}
-
+		// 补全前缀部分
+		while (startParts.length < 8) {
+			startParts.push('0');
+		}
 		const randomParts = startParts.slice();
-		for (let i = randomParts.length; i < 8; i++) {
-			randomParts.push(Math.floor(Math.random() * 0x10000));
+		// 根据前缀大小确定生成的随机段数
+		const remainingGroups = 8 - prefixGroups;
+		let randomGroups = Math.min(remainingGroups, 4); // 最多生成后4段随机
+		if (remainingGroups <= 4) {
+			// 若剩余段数小于等于4，则生成整个 CIDR 范围内的地址段
+			randomGroups = remainingGroups;
 		}
-		let address = randomParts.map(part => part.toString(16).replace(/^0+/, '')).join(':');
-		address = address.replace(/(^|:)0(:0)+/g, '::');
+		// 生成随机部分
+		for (let i = 8 - randomGroups; i < 8; i++) {
+			randomParts[i] = Math.floor(Math.random() * 0x10000).toString(16);
+		}
+		// 连接成地址字符串
+		let address = randomParts.join(':');
+		// 压缩连续的零段
+		address = address.replace(/(^|:)(0:)+/g, '::');
 		if (!addresses.has(address)) {
 			addresses.add(address);
 		}
 	}
-
 	return Array.from(addresses);
 }
 

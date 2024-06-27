@@ -438,16 +438,7 @@ function buildClashNode(ip_with_port, wireguardParameters2, Address2, PrivateKey
     "pre-shared-key": "",
     "reserved": "",
     "udp": true,
-    "mtu": 1280,
-    // 强制dns远程解析，默认值为false
-    "remote-dns-resolve": true,
-    // 仅在remote-dns-resolve为true时生效
-    "dns": [
-      "1.1.1.1",
-      "1.0.0.1",
-      "2606:4700:4700::1111",
-      "2606:4700:4700::1001"
-    ]
+    "mtu": 1280
   };
   if (reserved.includes(",")) {
     wireguard["reserved"] = reserved.split(",").map(Number);

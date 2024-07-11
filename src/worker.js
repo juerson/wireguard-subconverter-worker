@@ -46,27 +46,51 @@ const ipv6CidrRegex = /^((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]
 
 const selectedCIDRVersion = 4; // 默认选择是IPv4 CIDRs。如果值是4，就选择IPv4 CIDRs，如果值是6，则选择IPv6 CIDRs
 
+// ——————————————————————————————————————— 使用WARP优选IP的文件数据，生成订阅 ———————————————————————————————————————
+/**
+ * 使用私有csv文件的，就添加下面5行变量；
+ * 使用公开csv/txt文件的，就添写 ENDPOINT_FILE_URL变量。
+ * 
+ * 代码的判断：如果下面的6个变量都填写，就先读取GitHub私有代码库的result.csv文件，没有读取到数据，才读取公开链接的。
+ */
+// 读取GitHub私有代码库的result.csv（WARP优选IP，只筛选延迟小于1000ms的）
+const DEFAULT_GITHUB_TOKEN = '';          // GitHub的令牌
+const DEFAULT_OWNER = '';                 // GitHub的用户名
+const DEFAULT_REPO = '';                  // GitHub的仓库名
+const DEFAULT_BRANCH = 'main';            // GitHub的分支名
+const DEFAULT_FILE_PATH = 'result.csv';   // GitHub的文件路径
+// 读取公开链接的IP:PORT（WARP优选IP，如果是csv文件数据，就筛选延迟小于1000ms的，txt文件就以每行就是IP:PORT格式的）
+// const ENDPOINT_FILE_URL = "https://raw.githubusercontent.com/juerson/wireguard_converted_nekoray/main/ip.txt"; // 使用公共的txt文件
+// const ENDPOINT_FILE_URL = "https://raw.githubusercontent.com/juerson/wireguard2clash/master/result.csv"; // 使用公开的csv文件
+const ENDPOINT_FILE_URL = "";
+// ————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+
 export default {
 	async fetch(request, env, ctx) {
 		const url = new URL(request.url);
+		// ————————————————————————————————— 读取GitHub私有代码库中的csv文件的参数(必须) —————————————————————————————————
+		const GITHUB_TOKEN = env.GITHUB_TOKEN || DEFAULT_GITHUB_TOKEN;
+		const OWNER = env.GITHUB_OWNER || DEFAULT_OWNER;
+		const REPO = env.GITHUB_REPO || DEFAULT_REPO;
+		const BRANCH = env.GITHUB_BRANCH || DEFAULT_BRANCH;
+		const FILE_PATH = env.GITHUB_FILE_PATH || DEFAULT_FILE_PATH;
+		let useFileData = url.searchParams.get('file') || ""; // 从请求url中，获取file参数的值，使用CSV文件、txt文件的IP:PORT，生成订阅
+		// ————————————————————————————————————————————————————————————————————————————————————————————————————————————
 		// 从请求url中，获取参数的值（target、cidrs、nodeSize、ipSize、portSize、loc/location、detour、version/cidrversion）
+		let password = env.PASSWORD || ""; // cloudflare后台设置的密码，跟 pwd 的值对比
 		let target = url.searchParams.get('target') || ""; // 转换为目标客户端或链接类型，v2rayn/wireguard、nekobox/nekoray
 		let pwd = url.searchParams.get('pwd') || ""; // 访问的密码
-		let password = env.PASSWORD || ""; // cloudflare后台设置的密码，跟 pwd 的值对比
-		let cidrsValue = url.searchParams.get('cidrs') || "";
-		let newcidrs = cidrsValue ? cidrsValue.trim().split(',') : cidrs;
+
 		let nodeSize = url.searchParams.get('nodeSize') || url.searchParams.get('nodesize') || randomNodeSize;
 		let ipSize = url.searchParams.get('ipSize') || url.searchParams.get('ipsize') || randomIpSize;
 		let portSize = url.searchParams.get('portSize') || url.searchParams.get('portsize') || randomPortSize;
 		let cidrVersion = url.searchParams.get('cidrVersion') || url.searchParams.get('cidrversion') || url.searchParams.get('version') || String(selectedCIDRVersion); // 选择IPv4 CIDR还是IPv6 CIDR，默认选择IPv4 CIDR
 		let detour = url.searchParams.get('detour') || ""; // 链式代理，该参数只支持target=hiddify时使用
-		let location = url.searchParams.get('loc') || url.searchParams.get('location') || ""; // 粗略地选择哪些IP段(162/188开头的IP)，ipv6的IP段忽略
-		if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
-			newcidrs = cidrs.filter(item => item.startsWith("188")); // 188开头的cidr
-		} else if (location.toLocaleLowerCase() === "us" && cidrsValue.trim() === "") {
-			newcidrs = cidrs.filter(item => item.startsWith("162")); // 162开头的cidr
-		}
 		MTU = url.searchParams.get('mtu') || MTU; // 修改MTU值
+
+		let cidrsValue = url.searchParams.get('cidrs') || "";
+		let selectedCidrs = cidrsValue ? cidrsValue.trim().split(',') : cidrs;
+		let location = url.searchParams.get('loc') || url.searchParams.get('location') || ""; // 粗略地选择哪些IP段(162/188开头的IP)，ipv6的IP段忽略
 
 		// 条件成立后，将除了字母、数字、下划线、连字符和点号之外的所有字符进行编码
 		if (pwd) {
@@ -74,33 +98,110 @@ export default {
 			pwd = encodeURIComponent(pwd);
 		}
 
-		// 收集IP:PORT
+		// 收集IP:PORT，作为wireguard中的endpoint使用
 		let ips_with_ports = [];
-		if (cidrVersion == 4) { // 处理是IPv4 CIDR的CIDRs
-			const ipv4CidrArray = newcidrs.filter(item => ipv4CidrRegex.test(item));
-			// 在ipv4CidrArray范围内，生成随机一定数量的IP地址
-			generateRandomIPv4InRange(ipv4CidrArray, ipSize).forEach(ip => {
-				// 在ports范围内，选择随机一定数量的PORT端口
-				getRandomElementsFromArray(ports, portSize).forEach(port => {
-					ips_with_ports.push(`${ip}:${port}`);
+
+		if (useFileData === "true" || useFileData === "1") {
+			/** 使用csv文件的IP:PORT，作为endpoint使用 */
+
+			let endpoints = [];
+
+			// A:搜集GitHub私有代码库中csv文件中的endpoint（WARP优选IP）
+			if (GITHUB_TOKEN && OWNER && REPO && FILE_PATH) {
+				endpoints = await getEndpointsFromGitHub(GITHUB_TOKEN, OWNER, REPO, FILE_PATH, BRANCH);
+			}
+
+			let file_content = "";
+
+			// B:抓取GitHub公开代码库中csv/txt文件中的文件内容（WARP优选IP）
+			if (endpoints.length === 0 && ENDPOINT_FILE_URL) {
+				file_content = await fetchWebPageContent(ENDPOINT_FILE_URL);
+			}
+
+			/**
+			 * 处理抓取到的公开文件内容，提取endpoint
+			 * 如果file_content中含有","可能是cvs数据，否则当纯文本的IP:PORT处理
+			 */
+			if (endpoints.length === 0 && file_content.includes(",") && file_content.includes(":")) {
+				// 转换CSV字符串为二维数组
+				const dataArray = csvToArray(file_content);
+				// 定义筛选条件（例如：筛选出delay小于1000 ms的数据）
+				const filterFn = row => {
+					const delay = parseInt(row[row.length - 1].replace('ms', '').trim(), 10); // 将DELAY字符串转换为数字
+					return delay < 1000;
+				};
+				// 筛选数据
+				const filteredArray = filterData(dataArray, filterFn);
+				// 提取筛选后数据的第一列（不包含表头）
+				endpoints = extractFirstColumn(filteredArray.slice(1));
+			} else if (endpoints.length === 0 && !file_content.includes(",") && file_content.includes(":")) {
+				// 处理txt文件的IP:PORT，去重，排除空字符的元素，保留包含":"的元素
+				const map = new Map();
+				endpoints = file_content.trim().split(/\r?\n/).filter(item => !map.has(item) && map.set(item, 1) && item.trim() !== "" && item.includes(":"));
+			} else {
+				ips_with_ports = endpoints;
+			}
+
+			if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
+				ips_with_ports = endpoints.filter(item => item.startsWith("188.114")); // 188.114开头的endpoint
+			} else if (location.toLocaleLowerCase() === "us" && cidrsValue.trim() === "") {
+				ips_with_ports = endpoints.filter(item => item.startsWith("162.159")); // 162.159开头的endpoint
+			} else {
+				ips_with_ports = endpoints;
+			}
+		} else {
+			/** 使用生成的IP，组成IP:PORT，作为endpoint使用 */
+
+			if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
+				selectedCidrs = selectedCidrs.filter(item => item.startsWith("188.114")); // 188.114开头的cidr
+			} else if (location.toLocaleLowerCase() === "us" && cidrsValue.trim() === "") {
+				selectedCidrs = selectedCidrs.filter(item => item.startsWith("162.159")); // 162.159开头的cidr
+			}
+			if (cidrVersion == 4) { // 处理是IPv4 CIDR的CIDRs
+				const ipv4CidrArray = selectedCidrs.filter(item => ipv4CidrRegex.test(item));
+				// 在ipv4CidrArray范围内，生成随机一定数量的IP地址
+				generateRandomIPv4InRange(ipv4CidrArray, ipSize).forEach(ip => {
+					// 在ports范围内，选择随机一定数量的PORT端口
+					getRandomElementsFromArray(ports, portSize).forEach(port => {
+						ips_with_ports.push(`${ip}:${port}`);
+					});
 				});
-			});
-		} else if (cidrVersion == 6) { // 处理是IPv6 CIDR的CIDRs
-			const ipv6CidrArray = newcidrs.filter(item => ipv6CidrRegex.test(item));
-			// 在ipv6CidrArray范围内，生成随机一定数量的IP地址
-			generateRandomIPv6InRange(ipv6CidrArray, ipSize).forEach(ip => {
-				// 在ports范围内，选择随机一定数量的PORT端口
-				getRandomElementsFromArray(ports, portSize).forEach(port => {
-					ips_with_ports.push(`[${ip}]:${port}`);
+			} else if (cidrVersion == 6) { // 处理是IPv6 CIDR的CIDRs
+				const ipv6CidrArray = selectedCidrs.filter(item => ipv6CidrRegex.test(item));
+				// 在ipv6CidrArray范围内，生成随机一定数量的IP地址
+				generateRandomIPv6InRange(ipv6CidrArray, ipSize).forEach(ip => {
+					// 在ports范围内，选择随机一定数量的PORT端口
+					getRandomElementsFromArray(ports, portSize).forEach(port => {
+						ips_with_ports.push(`[${ip}]:${port}`);
+					});
 				});
-			});
+			}
 		}
 
 		switch (url.pathname) {
 			case '/sub':
 				// 密码正确才能访问订阅
 				if (password === pwd && ips_with_ports.length > 0) {
-					let endpoints = getRandomElementsFromArray(ips_with_ports, nodeSize);
+					let endpoints = [];
+
+					// 在不打乱顺序的前提下去重
+					const map = new Map();
+					let uniqueEndpointsArray = ips_with_ports.filter(item => !map.has(item) && map.set(item, 1));
+
+					if ((useFileData === "true" || useFileData === "1") || (uniqueEndpointsArray.length <= nodeSize)) {
+						/**
+						 * 该条件分支的目的：
+						 * 一方面，保证使用文件的endpoint时，保持原有顺序，不是随机抽取；
+						 * 另一方面，uniqueEndpointsArray的个数小于或等于nodeSize数时，不用再进行随机抽取
+						 */
+						endpoints = uniqueEndpointsArray.slice(0, nodeSize);
+					} else if (uniqueEndpointsArray.length > nodeSize) {
+						/**
+						 * 该条件分支的目的，确保uniqueEndpointsArray个数大于nodeSize数；
+						 * 如果uniqueEndpointsArray的个数小于或等于nodeSize数，会造成抽取的endpoints个数比uniqueEndpointsArray总数少（bug）
+						 */
+						endpoints = getRandomElementsFromArray(uniqueEndpointsArray, nodeSize);
+					}
 					if (target.toLocaleLowerCase() === "v2rayn" || target.toLocaleLowerCase() === "wireguard") {
 						let wireguardLinks = [];
 						endpoints.forEach(ip_with_port => {
@@ -219,7 +320,7 @@ export default {
 						});
 					}
 				} else if (password === pwd && ips_with_ports.length === 0) {
-					return new Response("没有生成任何的IP:PORT地址！检查一下传入的URL参数是否出现冲突，导致无法生成的IP:PORT地址。", {
+					return new Response("IP:PORT地址为空，无法生成订阅。检查一下传入的URL参数是否出现冲突；或者读取文件时，没有读取到相应的IP:PORT地址。", {
 						status: 200,
 						headers: {
 							"Content-Type": "text/plain; charset=utf-8",
@@ -238,7 +339,7 @@ export default {
 	},
 };
 
-// 抓取网页的内容
+// 抓取网页的内容(字符串内容)
 async function fetchWebPageContent(URL) {
 	try {
 		const response = await fetch(URL);
@@ -269,7 +370,7 @@ function getTwoRandomElements(arr) {
 	return [arr[index1], arr[index2]];
 }
 
-// 分割IP和端口
+// 分割IP和端口，使用正则表达式，提取IP和PORT，适用于IPv4:PORT和 [IPv6]:PORT
 function sliceIPAndPort(ip_with_port) {
 	// 匹配 IPv4 或 [IPv6] 的正则表达式
 	let matches = ip_with_port.match(/^(\[?([^\]]+)\]?)?:([0-9]+)$/);
@@ -282,6 +383,28 @@ function sliceIPAndPort(ip_with_port) {
 		return [null, null];
 	}
 }
+
+// 从数组中随机选择n个的元素（默认选择10个端口）
+function getRandomElementsFromArray(arr, n = 10) {
+	// 确保 n 的值在有效范围内
+	if (n < 1 || n > arr.length) {
+		n = 10; // 设置默认值为 10
+	}
+	const result = [];
+	const arrCopy = arr.slice(); // 创建数组副本以避免修改原数组
+	while (result.length < n && arrCopy.length > 0) {
+		const randomIndex = Math.floor(Math.random() * arrCopy.length);
+		const selectedElement = arrCopy[randomIndex];
+		// 检查选取的元素是否已经存在于结果数组中
+		if (!result.includes(selectedElement)) {
+			result.push(selectedElement);
+		}
+		arrCopy.splice(randomIndex, 1); // 从副本数组中移除已选择的元素
+	}
+	return result;
+}
+
+// —————————————————————————————————————————————— 生成 IPv4、IPv6 地址 ——————————————————————————————————————————————
 
 // 从IPv4 CIDRs范围中，生成随机、不重复的numOfIPs个IPv4地址
 function generateRandomIPv4InRange(cidrs, numOfIPs) {
@@ -382,25 +505,7 @@ function generateRandomIPv6InRange(cidrs, count) {
 	return Array.from(addresses);
 }
 
-// 从数组中随机选择n个的元素
-function getRandomElementsFromArray(arr, n = 10) {
-	// 确保 n 的值在有效范围内
-	if (n < 1 || n > arr.length) {
-		n = 10; // 设置默认值为 10
-	}
-	const result = [];
-	const arrCopy = arr.slice(); // 创建数组副本以避免修改原数组
-	while (result.length < n && arrCopy.length > 0) {
-		const randomIndex = Math.floor(Math.random() * arrCopy.length);
-		const selectedElement = arrCopy[randomIndex];
-		// 检查选取的元素是否已经存在于结果数组中
-		if (!result.includes(selectedElement)) {
-			result.push(selectedElement);
-		}
-		arrCopy.splice(randomIndex, 1); // 从副本数组中移除已选择的元素
-	}
-	return result;
-}
+// ————————————————————————————— 分别生成 WireGuard、NekoRay、clash、hiddify 的订阅内容 —————————————————————————————
 
 // 生成 WireGuard 链接
 function buildWireGuardLink(ip_with_port, wireguardParameters, Address, PrivateKey, encoded_PublicKey, MTU = 1280) {
@@ -517,7 +622,6 @@ function buildClashNode(ip_with_port, wireguardParameters, Address, PrivateKey, 
 		"ipv6": `${ipv6}`,
 		"private-key": `${private_key}`,
 		"public-key": `${PublicKey}`,
-		"pre-shared-key": "",
 		"reserved": "",
 		"udp": true,
 		"mtu": 1280
@@ -633,4 +737,85 @@ function buildHiddifyDetourJSON(ip_with_port, wireguardParameters, public_key, m
 	deepCopyB['reserved'] = reservedB.includes(",") ? reservedB.split(",").map(Number) : [];
 	// 节点1的名称、节点2的名称、节点1的信息、节点2的信息
 	return [proxy_name, proxy_name_detour, deepCopyA, deepCopyB];
+}
+
+// ———————————————————————————————————————— 读取GitHub代码库中的csv文件内容 ————————————————————————————————————————
+
+// 读取 GitHub 私有代码库中 csv 文件的 endpoint 的函数（里面含有处理数据的代码逻辑，直接调用就能返回读取到数组数据）
+async function getEndpointsFromGitHub(GITHUB_TOKEN, OWNER, REPO, FILE_PATH, BRANCH) {
+	let endpoints = [];
+	try {
+		const fileContent = await fetchCSVFromGitHub(GITHUB_TOKEN, OWNER, REPO, FILE_PATH, BRANCH);
+		const decoder = new TextDecoder('utf-8');
+		let responseBody = decoder.decode(fileContent.body);
+		// 转换CSV字符串为二维数组
+		const dataArray = csvToArray(responseBody);
+		// 定义筛选条件（例如：筛选出delay小于1000ms的数据）
+		const filterFn = row => {
+			const delay = parseInt(row[row.length - 1].replace('ms', '').trim(), 10); // 将DELAY字符串转换为数字
+			return delay < 1000;
+		};
+		// 筛选数据
+		const filteredArray = filterData(dataArray, filterFn);
+		// 提取筛选后数据的第一列（不包含表头）
+		endpoints = extractFirstColumn(filteredArray.slice(1));
+	} catch (error) {
+		endpoints = [];
+	}
+	return endpoints;
+}
+
+// 1. 读取GitHub私有代码库中的csv文件内容(字符串)
+async function fetchCSVFromGitHub(token, owner, repo, filePath, branch = "main") {
+	const githubUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}?ref=${branch}`;
+	try {
+		const response = await fetch(githubUrl, {
+			method: 'GET',
+			headers: {
+				'Authorization': `token ${token}`,
+				'Accept': 'application/vnd.github.v3.raw',
+				'User-Agent': 'Cloudflare Worker'
+			}
+		});
+		// 如果响应不成功，返回空字符串和文本类型
+		if (!response.ok) {
+			return {
+				body: '',
+				contentType: 'text/plain; charset=utf-8'
+			};
+		}
+		const contentType = response.headers.get('Content-Type') || 'application/octet-stream';
+
+		const body = await response.arrayBuffer();
+		return {
+			body: body,
+			contentType: contentType
+		};
+	} catch (error) {
+		// 捕获任何其他错误，并返回空字符串
+		return {
+			body: '',
+			contentType: 'text/plain; charset=utf-8'
+		};
+	}
+}
+
+// 2. 将CSV字符串转换为二维数组
+function csvToArray(csv) {
+	return csv.trim().split(/\r?\n/).map(row => row.split(','));
+}
+
+// 3. 筛选数据
+function filterData(array, filterFn) {
+	// 保留表头
+	const header = array[0];
+	// 筛选数据行
+	const filteredRows = array.slice(1).filter(filterFn);
+	// 返回带有表头的数组
+	return [header, ...filteredRows];
+}
+
+// 4. 提取第一列数据（endpoint）
+function extractFirstColumn(array) {
+	return array.map(row => row[0]);
 }

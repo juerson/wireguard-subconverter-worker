@@ -4,4 +4,9 @@ compatibility_date = "2024-04-04"
 workers_dev = true
 
 [vars]
-PASSWORD = "" # 访问密码
+PASSWORD = ""          # 访问订阅内容，所需要的密码
+GITHUB_TOKEN = ""      # GitHub Token
+GITHUB_OWNER = ""      # GitHub 仓库所有者（用户名）
+GITHUB_REPO = ""       # GitHub 私有文件所在的仓库名
+GITHUB_BRANCH = "main" # GitHub 私有文件所在的分支名，默认是main
+GITHUB_FILE_PATH = "result.csv" # GitHub 私有文件所在的文件路径，是相对路径

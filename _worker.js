@@ -37,50 +37,101 @@ var HIDDIFY_TEMPLATE_URL = "https://raw.githubusercontent.com/juerson/wireguard-
 var ipv4CidrRegex = /^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])\/(3[0-2]|[1-2]?[0-9])$/;
 var ipv6CidrRegex = /^((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,7}|:)|fe80:(?::[0-9A-Fa-f]{0,4}){0,4}%[0-9A-Za-z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:[0-9A-Fa-f]{1,4}:){1,4}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,4}:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])){3})\/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$/;
 var selectedCIDRVersion = 4;
+var DEFAULT_GITHUB_TOKEN = "";
+var DEFAULT_OWNER = "";
+var DEFAULT_REPO = "";
+var DEFAULT_BRANCH = "main";
+var DEFAULT_FILE_PATH = "result.csv";
+var ENDPOINT_FILE_URL = "";
 var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const GITHUB_TOKEN = env.GITHUB_TOKEN || DEFAULT_GITHUB_TOKEN;
+    const OWNER = env.GITHUB_OWNER || DEFAULT_OWNER;
+    const REPO = env.GITHUB_REPO || DEFAULT_REPO;
+    const BRANCH = env.GITHUB_BRANCH || DEFAULT_BRANCH;
+    const FILE_PATH = env.GITHUB_FILE_PATH || DEFAULT_FILE_PATH;
+    let useFileData = url.searchParams.get("file") || "";
+    let password = env.PASSWORD || "";
     let target = url.searchParams.get("target") || "";
     let pwd = url.searchParams.get("pwd") || "";
-    let password = env.PASSWORD || "";
-    let cidrsValue = url.searchParams.get("cidrs") || "";
-    let newcidrs = cidrsValue ? cidrsValue.trim().split(",") : cidrs;
     let nodeSize = url.searchParams.get("nodeSize") || url.searchParams.get("nodesize") || randomNodeSize;
     let ipSize = url.searchParams.get("ipSize") || url.searchParams.get("ipsize") || randomIpSize;
     let portSize = url.searchParams.get("portSize") || url.searchParams.get("portsize") || randomPortSize;
     let cidrVersion = url.searchParams.get("cidrVersion") || url.searchParams.get("cidrversion") || url.searchParams.get("version") || String(selectedCIDRVersion);
     let detour = url.searchParams.get("detour") || "";
-    let location = url.searchParams.get("loc") || url.searchParams.get("location") || "";
-    if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
-      newcidrs = cidrs.filter((item) => item.startsWith("188"));
-    } else if (location.toLocaleLowerCase() === "us" && cidrsValue.trim() === "") {
-      newcidrs = cidrs.filter((item) => item.startsWith("162"));
-    }
     MTU = url.searchParams.get("mtu") || MTU;
+    let cidrsValue = url.searchParams.get("cidrs") || "";
+    let selectedCidrs = cidrsValue ? cidrsValue.trim().split(",") : cidrs;
+    let location = url.searchParams.get("loc") || url.searchParams.get("location") || "";
     if (pwd) {
       password = encodeURIComponent(password);
       pwd = encodeURIComponent(pwd);
     }
     let ips_with_ports = [];
-    if (cidrVersion == 4) {
-      const ipv4CidrArray = newcidrs.filter((item) => ipv4CidrRegex.test(item));
-      generateRandomIPv4InRange(ipv4CidrArray, ipSize).forEach((ip) => {
-        getRandomElementsFromArray(ports, portSize).forEach((port) => {
-          ips_with_ports.push(`${ip}:${port}`);
+    if (useFileData === "true" || useFileData === "1") {
+      let endpoints = [];
+      if (GITHUB_TOKEN && OWNER && REPO && FILE_PATH) {
+        endpoints = await getEndpointsFromGitHub(GITHUB_TOKEN, OWNER, REPO, FILE_PATH, BRANCH);
+      }
+      let file_content = "";
+      if (endpoints.length === 0 && ENDPOINT_FILE_URL) {
+        file_content = await fetchWebPageContent(ENDPOINT_FILE_URL);
+      }
+      if (endpoints.length === 0 && file_content.includes(",") && file_content.includes(":")) {
+        const dataArray = csvToArray(file_content);
+        const filterFn = (row) => {
+          const delay = parseInt(row[row.length - 1].replace("ms", "").trim(), 10);
+          return delay < 1e3;
+        };
+        const filteredArray = filterData(dataArray, filterFn);
+        endpoints = extractFirstColumn(filteredArray.slice(1));
+      } else if (endpoints.length === 0 && !file_content.includes(",") && file_content.includes(":")) {
+        const map = /* @__PURE__ */ new Map();
+        endpoints = file_content.trim().split(/\r?\n/).filter((item) => !map.has(item) && map.set(item, 1) && item.trim() !== "" && item.includes(":"));
+      } else {
+        ips_with_ports = endpoints;
+      }
+      if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
+        ips_with_ports = endpoints.filter((item) => item.startsWith("188.114"));
+      } else if (location.toLocaleLowerCase() === "us" && cidrsValue.trim() === "") {
+        ips_with_ports = endpoints.filter((item) => item.startsWith("162.159"));
+      } else {
+        ips_with_ports = endpoints;
+      }
+    } else {
+      if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
+        selectedCidrs = selectedCidrs.filter((item) => item.startsWith("188.114"));
+      } else if (location.toLocaleLowerCase() === "us" && cidrsValue.trim() === "") {
+        selectedCidrs = selectedCidrs.filter((item) => item.startsWith("162.159"));
+      }
+      if (cidrVersion == 4) {
+        const ipv4CidrArray = selectedCidrs.filter((item) => ipv4CidrRegex.test(item));
+        generateRandomIPv4InRange(ipv4CidrArray, ipSize).forEach((ip) => {
+          getRandomElementsFromArray(ports, portSize).forEach((port) => {
+            ips_with_ports.push(`${ip}:${port}`);
+          });
         });
-      });
-    } else if (cidrVersion == 6) {
-      const ipv6CidrArray = newcidrs.filter((item) => ipv6CidrRegex.test(item));
-      generateRandomIPv6InRange(ipv6CidrArray, ipSize).forEach((ip) => {
-        getRandomElementsFromArray(ports, portSize).forEach((port) => {
-          ips_with_ports.push(`[${ip}]:${port}`);
+      } else if (cidrVersion == 6) {
+        const ipv6CidrArray = selectedCidrs.filter((item) => ipv6CidrRegex.test(item));
+        generateRandomIPv6InRange(ipv6CidrArray, ipSize).forEach((ip) => {
+          getRandomElementsFromArray(ports, portSize).forEach((port) => {
+            ips_with_ports.push(`[${ip}]:${port}`);
+          });
         });
-      });
+      }
     }
     switch (url.pathname) {
       case "/sub":
         if (password === pwd && ips_with_ports.length > 0) {
-          let endpoints = getRandomElementsFromArray(ips_with_ports, nodeSize);
+          let endpoints = [];
+          const map = /* @__PURE__ */ new Map();
+          let uniqueEndpointsArray = ips_with_ports.filter((item) => !map.has(item) && map.set(item, 1));
+          if (useFileData === "true" || useFileData === "1" || uniqueEndpointsArray.length <= nodeSize) {
+            endpoints = uniqueEndpointsArray.slice(0, nodeSize);
+          } else if (uniqueEndpointsArray.length > nodeSize) {
+            endpoints = getRandomElementsFromArray(uniqueEndpointsArray, nodeSize);
+          }
           if (target.toLocaleLowerCase() === "v2rayn" || target.toLocaleLowerCase() === "wireguard") {
             let wireguardLinks = [];
             endpoints.forEach((ip_with_port) => {
@@ -183,7 +234,7 @@ var worker_default = {
             });
           }
         } else if (password === pwd && ips_with_ports.length === 0) {
-          return new Response("\u6CA1\u6709\u751F\u6210\u4EFB\u4F55\u7684IP:PORT\u5730\u5740\uFF01\u68C0\u67E5\u4E00\u4E0B\u4F20\u5165\u7684URL\u53C2\u6570\u662F\u5426\u51FA\u73B0\u51B2\u7A81\uFF0C\u5BFC\u81F4\u65E0\u6CD5\u751F\u6210\u7684IP:PORT\u5730\u5740\u3002", {
+          return new Response("IP:PORT\u5730\u5740\u4E3A\u7A7A\uFF0C\u65E0\u6CD5\u751F\u6210\u8BA2\u9605\u3002\u68C0\u67E5\u4E00\u4E0B\u4F20\u5165\u7684URL\u53C2\u6570\u662F\u5426\u51FA\u73B0\u51B2\u7A81\uFF1B\u6216\u8005\u8BFB\u53D6\u6587\u4EF6\u65F6\uFF0C\u6CA1\u6709\u8BFB\u53D6\u5230\u76F8\u5E94\u7684IP:PORT\u5730\u5740\u3002", {
             status: 200,
             headers: {
               "Content-Type": "text/plain; charset=utf-8"
@@ -234,6 +285,22 @@ function sliceIPAndPort(ip_with_port) {
   } else {
     return [null, null];
   }
+}
+function getRandomElementsFromArray(arr, n = 10) {
+  if (n < 1 || n > arr.length) {
+    n = 10;
+  }
+  const result = [];
+  const arrCopy = arr.slice();
+  while (result.length < n && arrCopy.length > 0) {
+    const randomIndex = Math.floor(Math.random() * arrCopy.length);
+    const selectedElement = arrCopy[randomIndex];
+    if (!result.includes(selectedElement)) {
+      result.push(selectedElement);
+    }
+    arrCopy.splice(randomIndex, 1);
+  }
+  return result;
 }
 function generateRandomIPv4InRange(cidrs2, numOfIPs) {
   let ips = /* @__PURE__ */ new Set();
@@ -316,22 +383,6 @@ function generateRandomIPv6InRange(cidrs2, count) {
     }
   }
   return Array.from(addresses);
-}
-function getRandomElementsFromArray(arr, n = 10) {
-  if (n < 1 || n > arr.length) {
-    n = 10;
-  }
-  const result = [];
-  const arrCopy = arr.slice();
-  while (result.length < n && arrCopy.length > 0) {
-    const randomIndex = Math.floor(Math.random() * arrCopy.length);
-    const selectedElement = arrCopy[randomIndex];
-    if (!result.includes(selectedElement)) {
-      result.push(selectedElement);
-    }
-    arrCopy.splice(randomIndex, 1);
-  }
-  return result;
 }
 function buildWireGuardLink(ip_with_port, wireguardParameters2, Address2, PrivateKey2, encoded_PublicKey2, MTU2 = 1280) {
   let [ip, port] = sliceIPAndPort(ip_with_port);
@@ -435,7 +486,6 @@ function buildClashNode(ip_with_port, wireguardParameters2, Address2, PrivateKey
     "ipv6": `${ipv6}`,
     "private-key": `${private_key}`,
     "public-key": `${PublicKey2}`,
-    "pre-shared-key": "",
     "reserved": "",
     "udp": true,
     "mtu": 1280
@@ -531,6 +581,65 @@ function buildHiddifyDetourJSON(ip_with_port, wireguardParameters2, public_key, 
   deepCopyB["private_key"] = private_keyB;
   deepCopyB["reserved"] = reservedB.includes(",") ? reservedB.split(",").map(Number) : [];
   return [proxy_name, proxy_name_detour, deepCopyA, deepCopyB];
+}
+async function getEndpointsFromGitHub(GITHUB_TOKEN, OWNER, REPO, FILE_PATH, BRANCH) {
+  let endpoints = [];
+  try {
+    const fileContent = await fetchCSVFromGitHub(GITHUB_TOKEN, OWNER, REPO, FILE_PATH, BRANCH);
+    const decoder = new TextDecoder("utf-8");
+    let responseBody = decoder.decode(fileContent.body);
+    const dataArray = csvToArray(responseBody);
+    const filterFn = (row) => {
+      const delay = parseInt(row[row.length - 1].replace("ms", "").trim(), 10);
+      return delay < 1e3;
+    };
+    const filteredArray = filterData(dataArray, filterFn);
+    endpoints = extractFirstColumn(filteredArray.slice(1));
+  } catch (error) {
+    endpoints = [];
+  }
+  return endpoints;
+}
+async function fetchCSVFromGitHub(token, owner, repo, filePath, branch = "main") {
+  const githubUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}?ref=${branch}`;
+  try {
+    const response = await fetch(githubUrl, {
+      method: "GET",
+      headers: {
+        "Authorization": `token ${token}`,
+        "Accept": "application/vnd.github.v3.raw",
+        "User-Agent": "Cloudflare Worker"
+      }
+    });
+    if (!response.ok) {
+      return {
+        body: "",
+        contentType: "text/plain; charset=utf-8"
+      };
+    }
+    const contentType = response.headers.get("Content-Type") || "application/octet-stream";
+    const body = await response.arrayBuffer();
+    return {
+      body,
+      contentType
+    };
+  } catch (error) {
+    return {
+      body: "",
+      contentType: "text/plain; charset=utf-8"
+    };
+  }
+}
+function csvToArray(csv) {
+  return csv.trim().split(/\r?\n/).map((row) => row.split(","));
+}
+function filterData(array, filterFn) {
+  const header = array[0];
+  const filteredRows = array.slice(1).filter(filterFn);
+  return [header, ...filteredRows];
+}
+function extractFirstColumn(array) {
+  return array.map((row) => row[0]);
 }
 export {
   worker_default as default

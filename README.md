@@ -178,7 +178,7 @@ https://a.abc.workers.dev/sub?target=clash&file=true
 https://a.abc.workers.dev/sub?target=hiddify&file=1
 ```
 
-**温馨提示：**如果设置了私有csv文件相关变量值，也设置了公开csv、txt文件的`ENDPOINT_FILE_URL` 变量值；那么先判断私有csv文件中，是否读取到数据，没有读取到数据，就判断公开csv、txt文件中，是否读取到数据，如果读取到数据就生成订阅，依然没有读取到数据，就不能生成订阅（不会因读取不到数据，使用CIDR生成的IP来，生成订阅）。
+**温馨提示：** 如果设置了私有csv文件相关变量值，也设置了公开csv、txt文件的`ENDPOINT_FILE_URL` 变量值；那么先判断私有csv文件中，是否读取到数据，没有读取到数据，就判断公开csv、txt文件中，是否读取到数据，如果读取到数据就生成订阅，依然没有读取到数据，就不能生成订阅（不会因读取不到数据，使用CIDR生成的IP来，生成订阅）。
 
 #### 1、设置使用GitHub私有cvs文件的变量（参数）
 
@@ -186,7 +186,7 @@ https://a.abc.workers.dev/sub?target=hiddify&file=1
 
 设置GitHub相关参数/变量值，有两个种方法：
 
-**第一种方法：**在 Cloudflare Workers/Pages 中设置变量（推荐）
+**第一种方法：** 在 Cloudflare Workers/Pages 中设置变量（推荐）
 
 
 | 参数             | 含义                                                         |
@@ -202,7 +202,9 @@ https://a.abc.workers.dev/sub?target=hiddify&file=1
     <summary>点击展开图片</summary>
     <img src="images\GitHub私有文件相关变量.png" />
 </details>
-**第二种方法：**在`_worker.js`源码中设置默认值（不推荐）
+
+
+**第二种方法：** 在`_worker.js`源码中设置默认值（不推荐）
 
 与前面设置变量效果一样，变量名称不同而已，该方法可能会泄露您的 GitHub token。
 

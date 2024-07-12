@@ -138,13 +138,11 @@ export default {
 				// 处理txt文件的IP:PORT，去重，排除空字符的元素，保留包含":"的元素
 				const map = new Map();
 				endpoints = file_content.trim().split(/\r?\n/).filter(item => !map.has(item) && map.set(item, 1) && item.trim() !== "" && item.includes(":"));
-			} else {
-				ips_with_ports = endpoints;
 			}
 
-			if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
+			if (location.toLocaleLowerCase() === "gb" && endpoints.length !== 0) {
 				ips_with_ports = endpoints.filter(item => item.startsWith("188.114")); // 188.114开头的endpoint
-			} else if (location.toLocaleLowerCase() === "us" && cidrsValue.trim() === "") {
+			} else if (location.toLocaleLowerCase() === "us" && endpoints.length !== 0) {
 				ips_with_ports = endpoints.filter(item => item.startsWith("162.159")); // 162.159开头的endpoint
 			} else {
 				ips_with_ports = endpoints;
@@ -152,29 +150,36 @@ export default {
 		} else {
 			/** 使用生成的IP，组成IP:PORT，作为endpoint使用 */
 
-			if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
-				selectedCidrs = selectedCidrs.filter(item => item.startsWith("188.114")); // 188.114开头的cidr
-			} else if (location.toLocaleLowerCase() === "us" && cidrsValue.trim() === "") {
-				selectedCidrs = selectedCidrs.filter(item => item.startsWith("162.159")); // 162.159开头的cidr
-			}
 			if (cidrVersion == 4) { // 处理是IPv4 CIDR的CIDRs
 				const ipv4CidrArray = selectedCidrs.filter(item => ipv4CidrRegex.test(item));
-				// 在ipv4CidrArray范围内，生成随机一定数量的IP地址
-				generateRandomIPv4InRange(ipv4CidrArray, ipSize).forEach(ip => {
-					// 在ports范围内，选择随机一定数量的PORT端口
-					getRandomElementsFromArray(ports, portSize).forEach(port => {
-						ips_with_ports.push(`${ip}:${port}`);
+				let selectedIPv4Cidrs = [];
+				if (location.toLocaleLowerCase() === "gb" && ipv4CidrArray.length !== 0) {
+					selectedIPv4Cidrs = ipv4CidrArray.filter(item => item.startsWith("188.114")); // 188.114开头的cidr
+				} else if (location.toLocaleLowerCase() === "us" && ipv4CidrArray.length !== 0) {
+					selectedIPv4Cidrs = ipv4CidrArray.filter(item => item.startsWith("162.159")); // 162.159开头的cidr
+				} else {
+					selectedIPv4Cidrs = ipv4CidrArray;
+				}
+				if (selectedIPv4Cidrs.length > 0) {
+					// 在selectedIPv4Cidrs范围内，生成随机一定数量的IP地址
+					generateRandomIPv4InRange(selectedIPv4Cidrs, ipSize).forEach(ip => {
+						// 在ports范围内，选择随机一定数量的PORT端口
+						getRandomElementsFromArray(ports, portSize).forEach(port => {
+							ips_with_ports.push(`${ip}:${port}`);
+						});
 					});
-				});
+				}
 			} else if (cidrVersion == 6) { // 处理是IPv6 CIDR的CIDRs
 				const ipv6CidrArray = selectedCidrs.filter(item => ipv6CidrRegex.test(item));
-				// 在ipv6CidrArray范围内，生成随机一定数量的IP地址
-				generateRandomIPv6InRange(ipv6CidrArray, ipSize).forEach(ip => {
-					// 在ports范围内，选择随机一定数量的PORT端口
-					getRandomElementsFromArray(ports, portSize).forEach(port => {
-						ips_with_ports.push(`[${ip}]:${port}`);
+				if (ipv6CidrArray.length > 0) {
+					// 在ipv6CidrArray范围内，生成随机一定数量的IP地址
+					generateRandomIPv6InRange(ipv6CidrArray, ipSize).forEach(ip => {
+						// 在ports范围内，选择随机一定数量的PORT端口
+						getRandomElementsFromArray(ports, portSize).forEach(port => {
+							ips_with_ports.push(`[${ip}]:${port}`);
+						});
 					});
-				});
+				}
 			}
 		}
 
@@ -188,6 +193,7 @@ export default {
 					const map = new Map();
 					let uniqueEndpointsArray = ips_with_ports.filter(item => !map.has(item) && map.set(item, 1));
 
+					// 抽取nodeSize个的endpoint或截取前nodeSize个的endpoint
 					if ((useFileData === "true" || useFileData === "1") || (uniqueEndpointsArray.length <= nodeSize)) {
 						/**
 						 * 该条件分支的目的：
@@ -202,6 +208,8 @@ export default {
 						 */
 						endpoints = getRandomElementsFromArray(uniqueEndpointsArray, nodeSize);
 					}
+
+					// 转换成不同的订阅
 					if (target.toLocaleLowerCase() === "v2rayn" || target.toLocaleLowerCase() === "wireguard") {
 						let wireguardLinks = [];
 						endpoints.forEach(ip_with_port => {

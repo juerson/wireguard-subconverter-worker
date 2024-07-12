@@ -89,36 +89,41 @@ var worker_default = {
       } else if (endpoints.length === 0 && !file_content.includes(",") && file_content.includes(":")) {
         const map = /* @__PURE__ */ new Map();
         endpoints = file_content.trim().split(/\r?\n/).filter((item) => !map.has(item) && map.set(item, 1) && item.trim() !== "" && item.includes(":"));
-      } else {
-        ips_with_ports = endpoints;
       }
-      if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
+      if (location.toLocaleLowerCase() === "gb" && endpoints.length !== 0) {
         ips_with_ports = endpoints.filter((item) => item.startsWith("188.114"));
-      } else if (location.toLocaleLowerCase() === "us" && cidrsValue.trim() === "") {
+      } else if (location.toLocaleLowerCase() === "us" && endpoints.length !== 0) {
         ips_with_ports = endpoints.filter((item) => item.startsWith("162.159"));
       } else {
         ips_with_ports = endpoints;
       }
     } else {
-      if (location.toLocaleLowerCase() === "gb" && cidrsValue.trim() === "") {
-        selectedCidrs = selectedCidrs.filter((item) => item.startsWith("188.114"));
-      } else if (location.toLocaleLowerCase() === "us" && cidrsValue.trim() === "") {
-        selectedCidrs = selectedCidrs.filter((item) => item.startsWith("162.159"));
-      }
       if (cidrVersion == 4) {
         const ipv4CidrArray = selectedCidrs.filter((item) => ipv4CidrRegex.test(item));
-        generateRandomIPv4InRange(ipv4CidrArray, ipSize).forEach((ip) => {
-          getRandomElementsFromArray(ports, portSize).forEach((port) => {
-            ips_with_ports.push(`${ip}:${port}`);
+        let selectedIPv4Cidrs = [];
+        if (location.toLocaleLowerCase() === "gb" && ipv4CidrArray.length !== 0) {
+          selectedIPv4Cidrs = ipv4CidrArray.filter((item) => item.startsWith("188.114"));
+        } else if (location.toLocaleLowerCase() === "us" && ipv4CidrArray.length !== 0) {
+          selectedIPv4Cidrs = ipv4CidrArray.filter((item) => item.startsWith("162.159"));
+        } else {
+          selectedIPv4Cidrs = ipv4CidrArray;
+        }
+        if (selectedIPv4Cidrs.length > 0) {
+          generateRandomIPv4InRange(selectedIPv4Cidrs, ipSize).forEach((ip) => {
+            getRandomElementsFromArray(ports, portSize).forEach((port) => {
+              ips_with_ports.push(`${ip}:${port}`);
+            });
           });
-        });
+        }
       } else if (cidrVersion == 6) {
         const ipv6CidrArray = selectedCidrs.filter((item) => ipv6CidrRegex.test(item));
-        generateRandomIPv6InRange(ipv6CidrArray, ipSize).forEach((ip) => {
-          getRandomElementsFromArray(ports, portSize).forEach((port) => {
-            ips_with_ports.push(`[${ip}]:${port}`);
+        if (ipv6CidrArray.length > 0) {
+          generateRandomIPv6InRange(ipv6CidrArray, ipSize).forEach((ip) => {
+            getRandomElementsFromArray(ports, portSize).forEach((port) => {
+              ips_with_ports.push(`[${ip}]:${port}`);
+            });
           });
-        });
+        }
       }
     }
     switch (url.pathname) {
